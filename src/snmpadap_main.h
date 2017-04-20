@@ -14,20 +14,37 @@
  * limitations under the License.
  *
  */
-#include <stdbool.h>
-#include <stdint.h>
-
-#include "adapter.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
-/* none */
+/*
+ * SNMP commands
+ */
+#define SNMPADAP_TRANSLATE 	"snmptranslate"
+#define SNMPADAP_GET 		"snmpget"
+#define SNMPADAP_GETNEXT 	"snmpgetnext"
+#define SNMPADAP_WALK 		"snmpwalk"
+#define SNMPADAP_TABLE 		"snmptable"
+#define SNMPADAP_SET 		"snmpset"
+#define SNMPADAP_BULKGET 	"snmpbulkget"
+#define SNMPADAP_BULKWALK 	"snmpbulkwalk"
+#define SNMPADAP_TRAP 		"snmptrap"
+
 
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
-/* none */
+/*
+ * SNMP Adapter - supported types
+ */
+typedef enum _SNMPADAP_TYPE
+{
+	SNMPADAPTYPE_GET = 1,
+	SNMPADAPTYPE_SET,
+
+}SNMPADAP_TYPE;
+
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -42,10 +59,10 @@
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
-void do_stuff( void )
-{
-    return;
-}
+/*
+ * snmpadap_main
+ */
+int snmpadap_main(char* str);
 
 /*----------------------------------------------------------------------------*/
 /*                             Internal functions                             */
