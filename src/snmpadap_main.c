@@ -142,7 +142,7 @@ int main()
 	char setstr[] = "./snmpset -v2c -c hDaFHJG7 10.255.244.168 1.3.6.1.2.1.69.1.3.8.0 i 2";
 
 	char oid1[] = "1.3.6.1.2.1.69.1.3.8.0";
-	char oid2[] = "1.3.6.1.4.1.1429.79.6.1.1";
+	//char oid2[] = "1.3.6.1.4.1.1429.79.6.1.1";
 
 	//test snmp adapter set
 	printf("\n\nsnmp_adapter_set(): \n");

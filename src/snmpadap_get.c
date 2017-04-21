@@ -52,8 +52,8 @@ int snmp_adapter_get(char *pHost, char *pOID)
     session.version = SNMP_VERSION_2c;
 
     /* set the SNMPv1 community name used for authentication */
-    session.community = COMCASTCOMMUNITYTOKEN;
-    session.community_len = strlen(session.community);
+    session.community = (u_char*)COMCASTCOMMUNITYTOKEN;
+    session.community_len = strlen((const char*)session.community);
 
     /*
      * Open the session

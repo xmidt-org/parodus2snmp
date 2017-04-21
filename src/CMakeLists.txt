@@ -12,22 +12,17 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-set(SOURCES snmpadap_main.c snmpadap_get.c snmpadap_set.c)
+#set(SOURCES snmpadap_main.c snmpadap_get.c snmpadap_set.c)
+file(GLOB SOURCES "*.c")
 
 add_executable(parodus2snmp ${SOURCES})
 
 target_link_libraries (parodus2snmp
     ${CMAKE_THREAD_LIBS_INIT}
-    -llibparodus
-    -lwrp-c
-    -lmsgpackc
-    -ltrower-base64
-    -lnanomsg
-    -lcimplog
+    -lnetsnmp
+    -lrt 
+    -lcrypto 
     -lm
-    -lcjson
-    -lpthread
-    -lrt
     )
 
 install (TARGETS parodus2snmp DESTINATION bin)
