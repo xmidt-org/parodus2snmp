@@ -29,8 +29,8 @@ set(LIBRARY_DIR64 ${INSTALL_DIR}/lib64)
 include_directories(${INCLUDE_DIR})
 include_directories (SYSTEM /usr/include)
 
-#for net-snmp
-include(FindNetSnmp.cmake)
+#find net-snmp opensource package 
+include(FindPackageNetSNMP.cmake)
 
 if (NOT BUILD_YOCTO)
 

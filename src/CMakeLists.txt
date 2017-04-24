@@ -12,7 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-#set(SOURCES snmpadap_main.c snmpadap_get.c snmpadap_set.c)
 file(GLOB SOURCES "*.c")
 
 add_executable(parodus2snmp ${SOURCES})
