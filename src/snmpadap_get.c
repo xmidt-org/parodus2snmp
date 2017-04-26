@@ -24,7 +24,7 @@ int snmp_adapter_get(char *pHost, char *pOID)
 		return -1;
 	}
 
-    netsnmp_session  session = {}, *ss = NULL;
+    netsnmp_session  session, *ss = NULL;
     netsnmp_pdu *pdu = NULL;
     netsnmp_pdu *response = NULL;
 

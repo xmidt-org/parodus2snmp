@@ -12,16 +12,32 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+set(PROJ_PARODUS2SNMP parodus2snmp)
 file(GLOB SOURCES "*.c")
 
 add_executable(parodus2snmp ${SOURCES})
+#add_library(${PROJ_PARODUS2SNMP} STATIC ${HEADERS} ${SOURCES})
+#add_library(${PROJ_PARODUS2SNMP}.shared SHARED ${HEADERS} ${SOURCES})
+#set_target_properties(${PROJ_PARODUS2SNMP}.shared PROPERTIES OUTPUT_NAME ${PROJ_PARODUS2SNMP})
+#set_property(TARGET ${PROJ_PARODUS2SNMP} PROPERTY C_STANDARD 99)
+#set_property(TARGET ${PROJ_PARODUS2SNMP}.shared PROPERTY C_STANDARD 99)
 
-target_link_libraries (parodus2snmp
+
+target_link_libraries (${PROJ_PARODUS2SNMP}
     ${CMAKE_THREAD_LIBS_INIT}
+    -llibparodus
+    -lwrp-c
+    -lmsgpackc
+    -ltrower-base64
+    -lnanomsg
+    -lcimplog
     -lnetsnmp
     -lrt 
-    -lcrypto 
+    -lcrypto    
     -lm
+    -lcjson
+    -lpthread
+    -lrt
     )
 
-install (TARGETS parodus2snmp DESTINATION bin)
+install (TARGETS ${PROJ_PARODUS2SNMP} DESTINATION bin)

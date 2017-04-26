@@ -33,6 +33,9 @@ static int quiet = 0;
 
 static void optProc(int argc, char *const *argv, int opt)
 {
+    (void)argc; //to remove unused variable warning (-Werror)
+    (void)argv; //to remove unused variable warning (-Werror)
+
     switch (opt) {
     case 'C':
         while (*optarg) {
