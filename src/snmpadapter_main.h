@@ -60,9 +60,8 @@ typedef enum _SNMPADAP_TYPE
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
 /*
- * snmpadap_main
+ * none
  */
-int snmpadap_main(char* str);
 
 /*----------------------------------------------------------------------------*/
 /*                             Internal functions                             */

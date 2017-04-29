@@ -13,7 +13,7 @@
  *    		-1 	- invalid arguments
  *    		1	- error
  */
-int snmp_adapter_get(char *pHost, char *pOID);
+int snmp_adapter_get(int numargs, char *pargs[]);
 
 /* ------------------------------------------------------------------------------------------------
  * snmp_adapter_set
@@ -26,4 +26,5 @@ int snmp_adapter_get(char *pHost, char *pOID);
  */
 int snmp_adapter_set(int numargs, char *pargs[]);
 
-#endif
+
+#endif /* _SNMPADAP_COMMON_H_ */
