@@ -14,6 +14,13 @@
  * limitations under the License.
  *
  */
+/*
+ * snmpadapter_main.c
+ *
+ *  Created on: Apr 20, 2017
+ *      Author: Murugan Viswanathan
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -26,22 +33,29 @@
 #include <libparodus.h>
 #include "snmpadapter_main.h"
 #include "snmpadapter_common.h"
+#include "snmpadapter_parser.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
-#define SNMPADAP_MAX_ARGS 		128
-#define CONTENT_TYPE_JSON       "application/json"
+#define SNMPADAPTER_MAX_ARGS 		150
+/* #define CONTENT_TYPE_JSON       "application/json" */
+#define CONTENT_TYPE_ASCII 		"text/plain; charset=us-ascii"
 #define DEVICE_PROPS_FILE   	"/etc/device.properties"
 #define CLIENT_PORT_NUM     	6667
 #define URL_SIZE 	    		64
 
 // Enable this before integrating to RDKB gerrit */
-//#define RUN_ON_TARGET_GW	1
+/* #define RUN_ON_TARGET_GW	1 */
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
+char* COMCAST_COMMUNITY_TOKEN = "hDaFHJG7";
+char* COMCAST_COMMUNITY_CMD = "-c";
+char* SNMPADAPTER_SUPPORTED_VERSION = "-v2c";
+char* TARGET_AGENT = "10.255.244.168";
+
 
 libpd_instance_t current_instance;
 char parodus_url[URL_SIZE] = { '\0' };
@@ -64,11 +78,13 @@ static void get_parodus_url(char *parodus_url, char *client_url)
 {
 
 	FILE *fp = fopen(DEVICE_PROPS_FILE, "r");
-	char atom_ip[URL_SIZE] = { '\0' };
+	char atom_ip[URL_SIZE] =
+	{	'\0'};
 
 	if (NULL != fp)
 	{
-		char str[255] = { '\0' };
+		char str[255] =
+		{	'\0'};
 		while (fscanf(fp, "%s", str) != EOF)
 		{
 			char *value = NULL;
@@ -134,12 +150,12 @@ static void connect_to_parodus()
 	// get values from etc/device properties file on target gateway
 	get_parodus_url(parodus_url, client_url);
 #else /* hardcoded values - for test */
-	strncpy(parodus_url, "tcp://192.168.101.1:6666", URL_SIZE);
-	snprintf(client_url, URL_SIZE, "tcp://%s:%d", "192.168.101.3", CLIENT_PORT_NUM);
-	printf("RUN_ON_TARGET_GW: parodus_url is %s\n", parodus_url);
-	printf("RUN_ON_TARGET_GW: client_url is %s\n", client_url);
+	strncpy(parodus_url, SNMPADAPTER_PARODUS_URL, URL_SIZE);
+	snprintf(client_url, URL_SIZE, "tcp://%s:%d", "127.0.0.1", CLIENT_PORT_NUM);
 #endif
 
+	//libpd_cfg_t cfg1 = { .service_name = "iot", .receive = true, .keepalive_timeout_secs = 64, .parodus_url = parodus_url, .client_url = client_url };
+	//libpd_cfg_t cfg1 = { .service_name = "snmp", .receive = true, .keepalive_timeout_secs = 64, .parodus_url = parodus_url, .client_url = client_url };
 	libpd_cfg_t cfg1 = { .service_name = "config", .receive = true, .keepalive_timeout_secs = 64, .parodus_url = parodus_url, .client_url = client_url };
 
 	printf("libparodus_init with parodus url %s and client url %s\n", cfg1.parodus_url, cfg1.client_url);
@@ -156,12 +172,12 @@ static void connect_to_parodus()
 		printf("ret is %d\n", ret);
 		if (ret == 0)
 		{
-			printf("Init for parodus Success..!!\n");
+			printf("Init for parodus Success..!\n");
 			break;
 		}
 		else
 		{
-			printf("Init for parodus failed: '%s'\n", libparodus_strerror(ret));
+			printf("Init for parodus failed: '%s' !!!\n", libparodus_strerror(ret));
 			sleep(backoffRetryTime);
 			c++;
 		}
@@ -169,7 +185,6 @@ static void connect_to_parodus()
 		printf("libparodus_shutdown retval %d\n", retval);
 	}
 }
-
 
 /*
  * getargs
@@ -187,68 +202,244 @@ static int getargs(char* str, int* pargc, char** pargv)
 	char *token = strtok(str, " \t\n\r");
 	if (!token)
 	{
-		printf("[SNMPADAPTER] Error parsing getargs param !\n");
+		printf("[SNMPADAPTER] getargs() : Error parsing getargs param !\n");
 		return 1;
 	}
 
 	pargv[(*pargc)++] = token;
 
-	while ((token = strtok(NULL, " \t\n\r")) && (*pargc < SNMPADAP_MAX_ARGS))
+	while ((token = strtok(NULL, " \t\n\r")) && (*pargc < SNMPADAPTER_MAX_ARGS))
 	{
 		pargv[(*pargc)++] = token;
 	}
 
 	if (token)
 	{
-		printf("[SNMPADAPTER] Exceeded Max allowed tokens : %d \n", SNMPADAP_MAX_ARGS);
+		printf("[SNMPADAPTER] getargs() : Exceeded Max allowed tokens : %d \n", SNMPADAPTER_MAX_ARGS);
 	}
 
 	return 0; // success
 }
 
+
+/*
+ * snmpadapter_create_command
+ *   - compose snmp command using snmp data
+ *   - call snmpadapter_delete_command() to free allocated data
+ *   return the size of allocated command.
+ *   return 0 if fail
+ */
+static int snmpadapter_create_command(snmpadapter_record* snmpdata, char** command)
+{
+	if (!snmpdata || !command)
+		return 0; //failed
+
+	char* pstr = NULL;
+	int cmdsize = 0;
+
+	/* calculate command size, malloc and copy data*/
+	if (snmpdata->type == SNMPADAPTER_TYPE_GET)
+	{
+		if (snmpdata->u.get == NULL)
+			return 0; //failed
+
+		int statsize = cmdsize = strlen(SNMPADAPTER_GET) + 1
+						+ strlen(SNMPADAPTER_SUPPORTED_VERSION) + 1
+						+ strlen(COMCAST_COMMUNITY_CMD) + 1
+						+ strlen(COMCAST_COMMUNITY_TOKEN) + 1
+						+ strlen(TARGET_AGENT) + 1;
+
+		for (int c = 0; c < snmpdata->u.get->count && c < SNMPADAPTER_MAX_OIDS;	c++)
+		{
+			cmdsize += strlen(snmpdata->u.get->oid[c]) + 1;
+		}
+
+		pstr = *command = (char*) malloc (cmdsize + 1);
+		if(pstr == NULL)
+			return 0;
+
+		snprintf(pstr, statsize+1, "%s %s %s %s %s ",
+				SNMPADAPTER_GET,
+				SNMPADAPTER_SUPPORTED_VERSION,
+				COMCAST_COMMUNITY_CMD,
+				COMCAST_COMMUNITY_TOKEN,
+				TARGET_AGENT);
+		pstr += statsize;
+
+		for (int c = 0; c < snmpdata->u.get->count && c < SNMPADAPTER_MAX_OIDS;	c++)
+		{
+			size_t n = strlen(snmpdata->u.get->oid[c]) + 1;
+			snprintf(pstr, n+1, "%s ", snmpdata->u.get->oid[c]);
+			pstr +=  n;
+		}
+
+		*pstr = '\0';
+	}
+	else if (snmpdata->type == SNMPADAPTER_TYPE_SET)
+	{
+
+	}
+
+	return (int)(pstr - *command);
+}
+
+static void snmpadapter_delete_command(char* command)
+{
+	if(command != NULL)
+		free(command);
+
+	return;
+}
+
+/*
+static int snmpadapter_create_command(snmpadapter_record* snmpdata, int* pargc, char** pargv)
+{
+	if (snmpdata == NULL)
+		return 1; //failed
+
+	if (snmpdata->type == SNMPADAPTER_TYPE_GET)
+	{
+		*pargc = 0;
+
+		pargv[(*pargc)++] = SNMPADAPTER_GET;
+		pargv[(*pargc)++] = SNMPADAPTER_SUPPORTED_VERSION;
+		pargv[(*pargc)++] = COMCAST_COMMUNITY_CMD;
+		pargv[(*pargc)++] = COMCAST_COMMUNITY_TOKEN;
+		pargv[(*pargc)++] = TARGET_AGENT;
+
+
+		if(snmpdata->u.get == NULL)
+		{
+			*pargc = 0; pargv[0] = NULL;
+			return 1; //failed
+		}
+
+		for(int c = 0; c < snmpdata->u.get->count && c < SNMPADAPTER_MAX_OIDS; c++)
+		{
+			pargv[(*pargc)++] = snmpdata->u.get->oid[c];
+		}
+	}
+	else if (snmpdata->type == SNMPADAPTER_TYPE_SET)
+	{
+
+	}
+
+	return 0; //success
+}
+*/
+
+/*
+ * snmpadapter_get_snmpdata
+ *   - Get SNMP command and data from Request payload
+ */
+static int snmpadapter_get_snmpdata(char* payload, snmpadapter_record** snmpdata)
+{
+	snmpadapter_record* snmp_params = NULL;
+
+	cJSON *request = cJSON_Parse(payload);
+	if (request != NULL)
+	{
+		char* command = cJSON_GetObjectItem(request, "command")->valuestring;
+
+		if (command != NULL)
+		{
+			char* out = cJSON_PrintUnformatted(request);
+
+			snmp_params = (snmpadapter_record*) malloc(sizeof(snmpadapter_record));
+			if(!snmp_params)
+				return 1;
+			memset(snmp_params, 0, sizeof(snmpadapter_record));
+			*snmpdata = snmp_params; //allocate memory and pass to caller to free
+
+			if (strcmp(command, "GET") == 0)
+			{
+				extract_snmp_get_params(request, snmp_params);
+			}
+			else if ((strcmp(command, "SET") == 0))
+			{
+				extract_snmp_set_params(request, snmp_params);
+			}
+			else
+			{
+				printf("[SNMPADAPTER] snmpadapter_get_snmpdata() : Unknown Command : \"%s\"\n", command);
+			}
+
+			if (out != NULL)
+			{
+				free(out);
+			}
+		}
+		cJSON_Delete(request);
+	}
+	else
+	{
+		printf("[SNMPADAPTER] snmpadapter_get_snmpdata() : Could not parse payload!!\n");
+	}
+
+	return 0; //success
+}
+
 /*
  * snmpadapter_handle_request
+ * e.g.
+ * request: {"command":"GET","names":["1.3.6.1.2.1.69.1.3.8.0","1.3.6.1.2.1.69.1.3.8.1","1.3.6.1.2.1.69.1.3.8.2"]}
+ *
+ * request: {"command":"SET","parameters":[{"name":"Device.X_RDKCENTRAL-COM_XDNS.DefaultDeviceDnsIPv4","dataType":0,"value":"75.75.75.10"},{"name":"Device.X_RDKCENTRAL-COM_XDNS.DefaultDeviceDnsIPv6","dataType":0,"value":"2001:558:feed::7510"},{"name":"Device.X_RDKCENTRAL-COM_XDNS.DefaultDeviceTag","dataType":0,"value":"Level1_Protected Browsing"}]}
+ *
  */
 static int snmpadapter_handle_request(char* request, char *transactionId, char **response)
 {
-	printf("[SNMPADAPTER] snmpcmd: %s\n", request);
+	printf("[SNMPADAPTER] snmpadapter_handle_request() : request: %s\n, transactionId = %s\n", request, transactionId);
+
+	snmpadapter_record* snmpdata = NULL;
+	if(snmpadapter_get_snmpdata(request, &snmpdata))
+		return 1; //fail
+
+	char* snmpcommand = NULL;
+	int len = snmpadapter_create_command(snmpdata, &snmpcommand);
+	if(snmpcommand == NULL || strlen(snmpcommand) == 0 || len == 0)
+	{
+		free_snmp_record(snmpdata);
+		return 1; // fail
+	}
+
+	printf("[SNMPADAPTER] snmpadapter_handle_request() : command [%s]\nlength=%d\n", snmpcommand, len);
 
 	int argc = 0;
-	char* argv[SNMPADAP_MAX_ARGS] = { };
-
-	getargs(request, &argc, argv);
-
+	char* argv[SNMPADAPTER_MAX_ARGS] = { };
+	getargs(snmpcommand, &argc, argv);
 	if (argc == 0 || argv[0] == NULL)
 	{
-		printf("[SNMPADAPTER] getargs() - could't parse arguments !\n");
+		printf("[SNMPADAPTER] snmpadapter_handle_request() : could't parse arguments !\n");
+		snmpadapter_delete_command(snmpcommand);
+		free_snmp_record(snmpdata);
 		return 1; //error
 	}
 
-	printf("[SNMPADAPTER] argc: %d\n", argc);
+	printf("[SNMPADAPTER] snmpadapter_handle_request() : argc: %d\n", argc);
 
 	int cnt = argc, i = 0;
 	while (cnt--)
 	{
-		printf("[SNMPADAPTER] argv[%d] : %s\n", i, argv[i]);
+		printf("[SNMPADAPTER] snmpadapter_handle_request() : argv[%d] : %s\n", i, argv[i]);
 		i++;
 	}
 
-	//find appropriate adapter method to call
-	if (strstr(argv[0], SNMPADAP_GET) != NULL)
+	printf("find appropriate adapter method to call\n");
+	if (strstr(argv[0], SNMPADAPTER_GET) != NULL)
 	{
-		// call snmp adapter get
-		snmp_adapter_get(argc, argv);
-
-		// return back value string
-
+		// call snmp adapter get, return back response
+		printf("call snmp_adapter_send_receive_get\n");
+		snmp_adapter_send_receive_get(argc, argv, response);
 	}
-	else if (strstr(argv[0], SNMPADAP_SET) != NULL)
+	else if (strstr(argv[0], SNMPADAPTER_SET) != NULL)
 	{
-		// call snmp adapter set
-		snmp_adapter_set(argc, argv);
-
-		// return back success/error response
+		// call snmp adapter set. return back success/error response
+		snmp_adapter_send_receive_set(argc, argv, response);
 	}
+
+	snmpadapter_delete_command(snmpcommand);
+	free_snmp_record(snmpdata);
 
 	return 0;
 }
@@ -259,8 +450,8 @@ static int snmpadapter_handle_request(char* request, char *transactionId, char *
 static long diff_time(struct timespec *starttime, struct timespec *finishtime)
 {
 	long msec;
-	msec=(finishtime->tv_sec-starttime->tv_sec)*1000;
-	msec+=(finishtime->tv_nsec-starttime->tv_nsec)/1000000;
+	msec = (finishtime->tv_sec - starttime->tv_sec) * 1000;
+	msec += (finishtime->tv_nsec - starttime->tv_nsec) / 1000000;
 	return msec;
 }
 
@@ -288,49 +479,77 @@ static void send_receive_from_parodus()
 
 		if (rtn != 0)
 		{
-			printf("Libparodus failed to recieve message: '%s'\n", libparodus_strerror(rtn));
+			printf("[SNMPADAPTER] send_receive_from_parodus() : Libparodus failed to recieve message: '%s'\n", libparodus_strerror(rtn));
 			sleep(5);
 			continue;
 		}
 
-		if (wrp_msg->msg_type == WRP_MSG_TYPE__REQ)
+		switch (wrp_msg->msg_type)
 		{
-			res_wrp_msg = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
-			memset(res_wrp_msg, 0, sizeof(wrp_msg_t));
+			case WRP_MSG_TYPE__REQ:
 
-			clock_gettime(CLOCK_REALTIME, startPtr);
+				printf("[SNMPADAPTER] send_receive_from_parodus() : received WRP_MSG_TYPE__REQ \n");
+				res_wrp_msg = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
+				memset(res_wrp_msg, 0, sizeof(wrp_msg_t));
 
-			//processRequest((char *) wrp_msg->u.req.payload, wrp_msg->u.req.transaction_uuid, ((char **) (&(res_wrp_msg->u.req.payload))));
-			snmpadapter_handle_request((char *) wrp_msg->u.req.payload, wrp_msg->u.req.transaction_uuid, ((char **) (&(res_wrp_msg->u.req.payload))));
+				clock_gettime(CLOCK_REALTIME, startPtr);
 
-			printf("Response payload is %s\n", (char *) (res_wrp_msg->u.req.payload));
-			res_wrp_msg->u.req.payload_size = strlen(res_wrp_msg->u.req.payload);
-			res_wrp_msg->msg_type = wrp_msg->msg_type;
-			res_wrp_msg->u.req.source = wrp_msg->u.req.dest;
-			res_wrp_msg->u.req.dest = wrp_msg->u.req.source;
-			res_wrp_msg->u.req.transaction_uuid = wrp_msg->u.req.transaction_uuid;
+				// Process request message and get the response payload to send back
+				printf("[SNMPADAPTER] send_receive_from_parodus() : call snmpadapter_handle_request..\n");
+				snmpadapter_handle_request((char *) wrp_msg->u.req.payload, wrp_msg->u.req.transaction_uuid, ((char **) (&(res_wrp_msg->u.req.payload))));
 
-			contentType = (char *) malloc(sizeof(char) * (strlen(CONTENT_TYPE_JSON) + 1));
-			strncpy(contentType, CONTENT_TYPE_JSON, strlen(CONTENT_TYPE_JSON) + 1);
-			res_wrp_msg->u.req.content_type = contentType;
+				if(res_wrp_msg->u.req.payload == NULL)
+				{
+					printf("[SNMPADAPTER] send_receive_from_parodus() : Response payload is NULL !!\n");
+					res_wrp_msg->u.req.payload_size = 0;
+					continue;
+				}
+				else
+				{
+					printf("[SNMPADAPTER] send_receive_from_parodus() : Response payload is %s\n", (char *) (res_wrp_msg->u.req.payload));
 
-			int sendStatus = libparodus_send(current_instance, res_wrp_msg);
-			printf("sendStatus is %d\n", sendStatus);
-			if (sendStatus == 0)
-			{
-				printf("Sent message successfully to parodus\n");
-			}
-			else
-			{
-				printf("Failed to send message: '%s'\n", libparodus_strerror(sendStatus));
-			}
+					res_wrp_msg->u.req.payload_size = strlen(res_wrp_msg->u.req.payload);
+					res_wrp_msg->msg_type = wrp_msg->msg_type;
+					res_wrp_msg->u.req.source = wrp_msg->u.req.dest;
+					res_wrp_msg->u.req.dest = wrp_msg->u.req.source;
+					res_wrp_msg->u.req.transaction_uuid = wrp_msg->u.req.transaction_uuid;
+					contentType = (char *) malloc(sizeof(char) * (strlen(CONTENT_TYPE_ASCII) + 1));
+					strncpy(contentType, CONTENT_TYPE_ASCII, strlen(CONTENT_TYPE_ASCII) + 1);
+					res_wrp_msg->u.req.content_type = contentType;
+				}
 
-			clock_gettime(CLOCK_REALTIME, endPtr);
-			printf("Elapsed time : %ld ms\n", diff_time(startPtr, endPtr));
-			wrp_free_struct(res_wrp_msg);
+				// Send Response back
+				int sendStatus = libparodus_send(current_instance, res_wrp_msg);
+				printf("[SNMPADAPTER] send_receive_from_parodus() : sendStatus is %d\n", sendStatus);
+				if (sendStatus == 0)
+				{
+					printf("[SNMPADAPTER] send_receive_from_parodus() : Sent message successfully to parodus\n");
+				}
+				else
+				{
+					printf("[SNMPADAPTER] send_receive_from_parodus() : Failed to send message!! : '%s'\n", libparodus_strerror(sendStatus));
+				}
+
+				clock_gettime(CLOCK_REALTIME, endPtr);
+				printf("[SNMPADAPTER] send_receive_from_parodus() : Elapsed time : %ld ms\n", diff_time(startPtr, endPtr));
+				wrp_free_struct(res_wrp_msg);
+
+				break;
+
+			case WRP_MSG_TYPE__CREATE:
+			case WRP_MSG_TYPE__RETREIVE:
+			case WRP_MSG_TYPE__UPDATE:
+			case WRP_MSG_TYPE__DELETE:
+				printf("SNMPADAPTER: send_receive_from_parodus() - received CRUD \n");
+				break;
+
+			default:
+				printf("SNMPADAPTER: send_receive_from_parodus() - received unknown type \n");
+				break;
 		}
+
 		free(wrp_msg);
-	}
+	}//while (1)
 
 	libparodus_shutdown(current_instance);
 
@@ -338,15 +557,14 @@ static void send_receive_from_parodus()
 	return;
 }
 
-
 /* ------------------------------------------------------------------------------------------------
  * main()
  */
 int main()
 {
-	/*
-	 *  TESTS
-	 */
+/*
+ *  TESTS
+ *
 	char setstr[] = "./snmpset -v2c -c hDaFHJG7 10.255.244.168 1.3.6.1.2.1.69.1.3.8.0 i 2";
 	char getstr[] = "./snmpget -v2c -c hDaFHJG7 10.255.244.168 1.3.6.1.2.1.69.1.3.8.0";
 	char *pStr = NULL;
@@ -360,9 +578,9 @@ int main()
 	pStr = getstr;
 	printf("\n\nsnmp_adapter_get(): \n");
 	snmpadapter_handle_request(pStr, NULL, NULL);
-	/*
-	 *  END TESTS
-	 */
+*
+*  END TESTS
+*/
 
 
 	/*

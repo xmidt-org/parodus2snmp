@@ -14,6 +14,15 @@
  * limitations under the License.
  *
  */
+/*
+ * snmpadapter_main.c
+ *
+ *  Created on: Apr 20, 2017
+ *      Author: Murugan Viswanathan
+ */
+
+#ifndef PARODUS2SNMP_SRC_SNMPADAPTER_PARSER_H_
+#define PARODUS2SNMP_SRC_SNMPADAPTER_PARSER_H_
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -21,29 +30,20 @@
 /*
  * SNMP commands
  */
-#define SNMPADAP_TRANSLATE 	"snmptranslate"
-#define SNMPADAP_GET 		"snmpget"
-#define SNMPADAP_GETNEXT 	"snmpgetnext"
-#define SNMPADAP_WALK 		"snmpwalk"
-#define SNMPADAP_TABLE 		"snmptable"
-#define SNMPADAP_SET 		"snmpset"
-#define SNMPADAP_BULKGET 	"snmpbulkget"
-#define SNMPADAP_BULKWALK 	"snmpbulkwalk"
-#define SNMPADAP_TRAP 		"snmptrap"
+#define SNMPADAPTER_TRANSLATE 	"snmptranslate"
+#define SNMPADAPTER_GET 		"snmpget"
+#define SNMPADAPTER_GETNEXT 	"snmpgetnext"
+#define SNMPADAPTER_WALK 		"snmpwalk"
+#define SNMPADAPTER_TABLE 		"snmptable"
+#define SNMPADAPTER_SET 		"snmpset"
+#define SNMPADAPTER_BULKGET 	"snmpbulkget"
+#define SNMPADAPTER_BULKWALK 	"snmpbulkwalk"
+#define SNMPADAPTER_TRAP 		"snmptrap"
 
 
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
-/*
- * SNMP Adapter - supported types
- */
-typedef enum _SNMPADAP_TYPE
-{
-	SNMPADAPTYPE_GET = 1,
-	SNMPADAPTYPE_SET,
-
-}SNMPADAP_TYPE;
 
 
 /*----------------------------------------------------------------------------*/
@@ -67,3 +67,6 @@ typedef enum _SNMPADAP_TYPE
 /*                             Internal functions                             */
 /*----------------------------------------------------------------------------*/
 /* none */
+
+#endif /* PARODUS2SNMP_SRC_SNMPADAPTER_MAIN_H_ */
+

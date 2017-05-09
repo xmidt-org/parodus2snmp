@@ -32,10 +32,10 @@
 
 static int quiet = 0;
 
-int snmp_adapter_set(int numargs, char *pargs[])
+int snmp_adapter_send_receive_set(int numargs, char *pargs[], char **response)
 {
 	netsnmp_session session, *ss;
-	netsnmp_pdu *pdu, *response = NULL;
+	netsnmp_pdu *pdu, *responsepdu = NULL;
 	netsnmp_variable_list *vars;
 	int arg;
 	int count;
@@ -69,13 +69,13 @@ int snmp_adapter_set(int numargs, char *pargs[])
 
 	if (arg >= numargs)
 	{
-		fprintf(stderr, "Missing object name\n");
+		fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_set() - Missing object name\n");
 		return 1;
 	}
 	if ((numargs - arg) > 3 * SNMP_MAX_CMDLINE_OIDS)
 	{
-		fprintf(stderr, "Too many assignments specified. ");
-		fprintf(stderr, "Only %d allowed in one request.\n",
+		fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_set() - Too many assignments specified. ");
+		fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_set() - Only %d allowed in one request.\n",
 				SNMP_MAX_CMDLINE_OIDS);
 		return 1;
 	}
@@ -110,21 +110,21 @@ int snmp_adapter_set(int numargs, char *pargs[])
 				types[current_type++] = *pargs[arg++];
 					break;
 				default:
-				fprintf(stderr, "%s: Bad object type: %c\n", pargs[arg - 1],
+				fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_set() - %s: Bad object type: %c\n", pargs[arg - 1],
 						*pargs[arg]);
 				return 1;
 			}
 		}
 		else
 		{
-			fprintf(stderr, "%s: Needs type and value\n", pargs[arg - 1]);
+			fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_set() - %s: Needs type and value\n", pargs[arg - 1]);
 			return 1;
 		}
 		if (arg < numargs)
 			values[current_value++] = pargs[arg];
 		else
 		{
-			fprintf(stderr, "%s: Needs value\n", pargs[arg - 2]);
+			fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_set() - %s: Needs value\n", pargs[arg - 2]);
 			return 1;
 		}
 	}
@@ -171,28 +171,28 @@ int snmp_adapter_set(int numargs, char *pargs[])
 	/*
 	 * do the request
 	 */
-	status = snmp_synch_response(ss, pdu, &response);
+	status = snmp_synch_response(ss, pdu, &responsepdu);
 
 	if (status == STAT_SUCCESS)
 	{
-		if (response->errstat == SNMP_ERR_NOERROR)
+		if (responsepdu->errstat == SNMP_ERR_NOERROR)
 		{
 			if (!quiet)
 			{
-				for (vars = response->variables; vars;
+				for (vars = responsepdu->variables; vars;
 						vars = vars->next_variable)
 					print_variable(vars->name, vars->name_length, vars);
 			}
 		}
 		else
 		{
-			fprintf(stderr, "Error in packet.\nReason: %s\n",
-					snmp_errstring(response->errstat));
-			if (response->errindex != 0)
+			fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_set() - Error in packet.\nReason: %s\n",
+					snmp_errstring(responsepdu->errstat));
+			if (responsepdu->errindex != 0)
 			{
-				fprintf(stderr, "Failed object: ");
-				for (count = 1, vars = response->variables;
-						vars && (count != response->errindex);
+				fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_set() - Failed object: ");
+				for (count = 1, vars = responsepdu->variables;
+						vars && (count != responsepdu->errindex);
 						vars = vars->next_variable, count++)
 					;
 				if (vars)
@@ -204,7 +204,7 @@ int snmp_adapter_set(int numargs, char *pargs[])
 	}
 	else if (status == STAT_TIMEOUT)
 	{
-		fprintf(stderr, "Timeout: No Response from %s\n", session.peername);
+		fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_set() - Timeout: No Response from %s\n", session.peername);
 		exitval = 1;
 	}
 	else
@@ -213,8 +213,8 @@ int snmp_adapter_set(int numargs, char *pargs[])
 		exitval = 1;
 	}
 
-	if (response)
-		snmp_free_pdu(response);
+	if (responsepdu)
+		snmp_free_pdu(responsepdu);
 	snmp_close(ss);
 	SOCK_CLEANUP;
 	return exitval;
