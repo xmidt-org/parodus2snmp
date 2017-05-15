@@ -277,7 +277,51 @@ static int snmpadapter_create_command(snmpadapter_record* snmpdata, char** comma
 	}
 	else if (snmpdata->type == SNMPADAPTER_TYPE_SET)
 	{
+		if (snmpdata->u.set == NULL)
+			return 0; //failed
 
+		int statsize = cmdsize = strlen(SNMPADAPTER_SET) + 1
+						+ strlen(SNMPADAPTER_SUPPORTED_VERSION) + 1
+						+ strlen(COMCAST_COMMUNITY_CMD) + 1
+						+ strlen(COMCAST_COMMUNITY_TOKEN) + 1
+						+ strlen(TARGET_AGENT) + 1;
+
+		printf("snmpdata->u.set->count = %d\n", snmpdata->u.set->count);
+		for (int c = 0; c < snmpdata->u.set->count && c < SNMPADAPTER_MAX_OIDS;	c++)
+		{
+			cmdsize += strlen(snmpdata->u.set->param[c].oid) + 1; //oid name
+			cmdsize += sizeof(char) + 1; //oid type
+			cmdsize += strlen(snmpdata->u.set->param[c].value) + 1; //oid value
+		}
+
+		pstr = *command = (char*) malloc (cmdsize + 1);
+		if(pstr == NULL)
+			return 0;
+
+		snprintf(pstr, statsize+1, "%s %s %s %s %s ",
+				SNMPADAPTER_SET,
+				SNMPADAPTER_SUPPORTED_VERSION,
+				COMCAST_COMMUNITY_CMD,
+				COMCAST_COMMUNITY_TOKEN,
+				TARGET_AGENT);
+		pstr += statsize;
+
+		for (int c = 0; c < snmpdata->u.set->count && c < SNMPADAPTER_MAX_OIDS;	c++)
+		{
+			size_t n = strlen(snmpdata->u.set->param[c].oid) + 1
+					+ sizeof(char) + 1
+					+ strlen(snmpdata->u.set->param[0].value) + 1;
+
+			printf("param %d..\n", c);
+			printf("oid [%s]\n", snmpdata->u.set->param[c].oid);
+			printf("value [%s]\n", snmpdata->u.set->param[c].value);
+
+			//snprintf(pstr, n+1, "%s %c %s ", snmpdata->u.set->param[c].oid, *(char*)&(snmpdata->u.set->param[c].type), snmpdata->u.set->param[c].value);
+			snprintf(pstr, n+1, "%s s %s ", snmpdata->u.set->param[c].oid, snmpdata->u.set->param[c].value);
+			pstr +=  n;
+		}
+
+		*pstr = '\0';
 	}
 
 	return (int)(pstr - *command);
@@ -332,44 +376,29 @@ static int snmpadapter_create_command(snmpadapter_record* snmpdata, int* pargc, 
  * snmpadapter_get_snmpdata
  *   - Get SNMP command and data from Request payload
  */
-static int snmpadapter_get_snmpdata(char* payload, snmpadapter_record** snmpdata)
+static int snmpadapter_get_snmpdata(char* payload, snmpadapter_record** psnmpdata)
 {
-	snmpadapter_record* snmp_params = NULL;
-
-	cJSON *request = cJSON_Parse(payload);
-	if (request != NULL)
+	cJSON *json_obj = cJSON_Parse(payload);
+	if (json_obj != NULL)
 	{
-		char* command = cJSON_GetObjectItem(request, "command")->valuestring;
+		char* command = get_snmp_command_name(json_obj);
 
 		if (command != NULL)
 		{
-			char* out = cJSON_PrintUnformatted(request);
-
-			snmp_params = (snmpadapter_record*) malloc(sizeof(snmpadapter_record));
-			if(!snmp_params)
-				return 1;
-			memset(snmp_params, 0, sizeof(snmpadapter_record));
-			*snmpdata = snmp_params; //allocate memory and pass to caller to free
-
 			if (strcmp(command, "GET") == 0)
 			{
-				extract_snmp_get_params(request, snmp_params);
+				extract_snmp_get_params(json_obj, psnmpdata);
 			}
 			else if ((strcmp(command, "SET") == 0))
 			{
-				extract_snmp_set_params(request, snmp_params);
+				extract_snmp_set_params(json_obj, psnmpdata);
 			}
 			else
 			{
 				printf("[SNMPADAPTER] snmpadapter_get_snmpdata() : Unknown Command : \"%s\"\n", command);
 			}
-
-			if (out != NULL)
-			{
-				free(out);
-			}
 		}
-		cJSON_Delete(request);
+		cJSON_Delete(json_obj);
 	}
 	else
 	{
@@ -381,17 +410,13 @@ static int snmpadapter_get_snmpdata(char* payload, snmpadapter_record** snmpdata
 
 /*
  * snmpadapter_handle_request
- * e.g.
- * request: {"command":"GET","names":["1.3.6.1.2.1.69.1.3.8.0","1.3.6.1.2.1.69.1.3.8.1","1.3.6.1.2.1.69.1.3.8.2"]}
- *
- * request: {"command":"SET","parameters":[{"name":"Device.X_RDKCENTRAL-COM_XDNS.DefaultDeviceDnsIPv4","dataType":0,"value":"75.75.75.10"},{"name":"Device.X_RDKCENTRAL-COM_XDNS.DefaultDeviceDnsIPv6","dataType":0,"value":"2001:558:feed::7510"},{"name":"Device.X_RDKCENTRAL-COM_XDNS.DefaultDeviceTag","dataType":0,"value":"Level1_Protected Browsing"}]}
- *
  */
 static int snmpadapter_handle_request(char* request, char *transactionId, char **response)
 {
 	printf("[SNMPADAPTER] snmpadapter_handle_request() : request: %s\n, transactionId = %s\n", request, transactionId);
 
 	snmpadapter_record* snmpdata = NULL;
+
 	if(snmpadapter_get_snmpdata(request, &snmpdata))
 		return 1; //fail
 

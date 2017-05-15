@@ -53,7 +53,7 @@ typedef struct _oid_struct
 {
     char* oid;
     char* value;
-    char type;
+    int type;
 } oid_struct;
 
 /*
@@ -70,7 +70,7 @@ typedef struct _snmpadapter_get_record
  */
 typedef struct _snmpadapter_set_record
 {
-	oid_struct *param;
+	oid_struct param[SNMPADAPTER_MAX_OIDS];
     int count;
 } snmpadapter_set_record;
 
@@ -108,9 +108,11 @@ typedef struct _snmpadapter_record
 
 void free_snmp_record(snmpadapter_record* rec);
 
-int extract_snmp_get_params(cJSON *request, snmpadapter_record* snmp_params);
+char* get_snmp_command_name(cJSON *request);
 
-int extract_snmp_set_params(cJSON *request, snmpadapter_record* snmp_params);
+int extract_snmp_get_params(cJSON *request, snmpadapter_record** snmp_params);
+
+int extract_snmp_set_params(cJSON *request, snmpadapter_record** snmp_params);
 
 
 #endif /* __SNMPADAPTER_PARSER_H__ */
