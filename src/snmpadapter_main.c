@@ -31,6 +31,7 @@
 #include <pthread.h>
 
 #include <libparodus.h>
+#include <wdmp-c.h>
 #include "snmpadapter_main.h"
 #include "snmpadapter_common.h"
 #include "snmpadapter_parser.h"
@@ -224,12 +225,12 @@ static int getargs(char* str, int* pargc, char** pargv)
 
 /*
  * snmpadapter_create_command
- *   - compose snmp command using snmp data
+ *   - create snmp command to send to net-snmp using snmp data
  *   - call snmpadapter_delete_command() to free allocated data
  *   return the size of allocated command.
  *   return 0 if fail
  */
-static int snmpadapter_create_command(snmpadapter_record* snmpdata, char** command)
+static int snmpadapter_create_command(req_struct* snmpdata, char** command)
 {
 	if (!snmpdata || !command)
 		return 0; //failed
@@ -238,9 +239,9 @@ static int snmpadapter_create_command(snmpadapter_record* snmpdata, char** comma
 	int cmdsize = 0;
 
 	/* calculate command size, malloc and copy data*/
-	if (snmpdata->type == SNMPADAPTER_TYPE_GET)
+	if (snmpdata->reqType == GET)
 	{
-		if (snmpdata->u.get == NULL)
+		if (snmpdata->u.getReq == NULL)
 			return 0; //failed
 
 		int statsize = cmdsize = strlen(SNMPADAPTER_GET) + 1
@@ -249,9 +250,9 @@ static int snmpadapter_create_command(snmpadapter_record* snmpdata, char** comma
 						+ strlen(COMCAST_COMMUNITY_TOKEN) + 1
 						+ strlen(TARGET_AGENT) + 1;
 
-		for (int c = 0; c < snmpdata->u.get->count && c < SNMPADAPTER_MAX_OIDS;	c++)
+		for (int c = 0; c < snmpdata->u.getReq->paramCnt; c++)
 		{
-			cmdsize += strlen(snmpdata->u.get->oid[c]) + 1;
+			cmdsize += strlen(snmpdata->u.getReq->paramNames[c]) + 1;
 		}
 
 		pstr = *command = (char*) malloc (cmdsize + 1);
@@ -266,18 +267,18 @@ static int snmpadapter_create_command(snmpadapter_record* snmpdata, char** comma
 				TARGET_AGENT);
 		pstr += statsize;
 
-		for (int c = 0; c < snmpdata->u.get->count && c < SNMPADAPTER_MAX_OIDS;	c++)
+		for (int c = 0; c < snmpdata->u.getReq->paramCnt; c++)
 		{
-			size_t n = strlen(snmpdata->u.get->oid[c]) + 1;
-			snprintf(pstr, n+1, "%s ", snmpdata->u.get->oid[c]);
+			size_t n = strlen(snmpdata->u.getReq->paramNames[c]) + 1;
+			snprintf(pstr, n+1, "%s ", snmpdata->u.getReq->paramNames[c]);
 			pstr +=  n;
 		}
 
 		*pstr = '\0';
 	}
-	else if (snmpdata->type == SNMPADAPTER_TYPE_SET)
+	else if (snmpdata->reqType == SET)
 	{
-		if (snmpdata->u.set == NULL)
+		if (snmpdata->u.setReq == NULL)
 			return 0; //failed
 
 		int statsize = cmdsize = strlen(SNMPADAPTER_SET) + 1
@@ -286,12 +287,12 @@ static int snmpadapter_create_command(snmpadapter_record* snmpdata, char** comma
 						+ strlen(COMCAST_COMMUNITY_TOKEN) + 1
 						+ strlen(TARGET_AGENT) + 1;
 
-		printf("snmpdata->u.set->count = %d\n", snmpdata->u.set->count);
-		for (int c = 0; c < snmpdata->u.set->count && c < SNMPADAPTER_MAX_OIDS;	c++)
+		printf("snmpdata->u.set->count = %d\n", (int)snmpdata->u.setReq->paramCnt);
+		for (int c = 0; c < snmpdata->u.setReq->paramCnt; c++)
 		{
-			cmdsize += strlen(snmpdata->u.set->param[c].oid) + 1; //oid name
+			cmdsize += strlen(snmpdata->u.setReq->param[c].name) + 1; //oid name
 			cmdsize += sizeof(char) + 1; //oid type
-			cmdsize += strlen(snmpdata->u.set->param[c].value) + 1; //oid value
+			cmdsize += strlen(snmpdata->u.setReq->param[c].value) + 1; //oid value
 		}
 
 		pstr = *command = (char*) malloc (cmdsize + 1);
@@ -306,18 +307,21 @@ static int snmpadapter_create_command(snmpadapter_record* snmpdata, char** comma
 				TARGET_AGENT);
 		pstr += statsize;
 
-		for (int c = 0; c < snmpdata->u.set->count && c < SNMPADAPTER_MAX_OIDS;	c++)
+		for (int c = 0; c < snmpdata->u.setReq->paramCnt; c++)
 		{
-			size_t n = strlen(snmpdata->u.set->param[c].oid) + 1
+			size_t n = strlen(snmpdata->u.setReq->param[c].name) + 1
 					+ sizeof(char) + 1
-					+ strlen(snmpdata->u.set->param[0].value) + 1;
+					+ strlen(snmpdata->u.setReq->param[c].value) + 1;
 
-			printf("param %d..\n", c);
-			printf("oid [%s]\n", snmpdata->u.set->param[c].oid);
-			printf("value [%s]\n", snmpdata->u.set->param[c].value);
+			// get type
+			char tc = snmpadapter_get_snmp_type(snmpdata->u.setReq->param[c].type);
 
-			//snprintf(pstr, n+1, "%s %c %s ", snmpdata->u.set->param[c].oid, *(char*)&(snmpdata->u.set->param[c].type), snmpdata->u.set->param[c].value);
-			snprintf(pstr, n+1, "%s s %s ", snmpdata->u.set->param[c].oid, snmpdata->u.set->param[c].value);
+			printf("%d - oid  [%s]\n", c, snmpdata->u.setReq->param[c].name);
+			printf("%d - type [%c]\n", c, snmpdata->u.setReq->param[c].type);
+			printf("%d - value[%s]\n", c, snmpdata->u.setReq->param[c].value);
+
+			//snprintf(pstr, n+1, "%s %c %s ", snmpdata->u.setReq->param[c].name, *(char*)&(snmpdata->u.setReq->param[c].type), snmpdata->u.setReq->param[c].value);
+			snprintf(pstr, n+1, "%s %c %s ", snmpdata->u.setReq->param[c].name, tc, snmpdata->u.setReq->param[c].value);
 			pstr +=  n;
 		}
 
@@ -376,6 +380,7 @@ static int snmpadapter_create_command(snmpadapter_record* snmpdata, int* pargc, 
  * snmpadapter_get_snmpdata
  *   - Get SNMP command and data from Request payload
  */
+/*
 static int snmpadapter_get_snmpdata(char* payload, snmpadapter_record** psnmpdata)
 {
 	cJSON *json_obj = cJSON_Parse(payload);
@@ -407,25 +412,34 @@ static int snmpadapter_get_snmpdata(char* payload, snmpadapter_record** psnmpdat
 
 	return 0; //success
 }
+*/
 
 /*
  * snmpadapter_handle_request
  */
 static int snmpadapter_handle_request(char* request, char *transactionId, char **response)
 {
+	int ret = 0;
 	printf("[SNMPADAPTER] snmpadapter_handle_request() : request: %s\n, transactionId = %s\n", request, transactionId);
 
-	snmpadapter_record* snmpdata = NULL;
+//	snmpadapter_record* snmpdata = NULL;
+//	if(snmpadapter_get_snmpdata(request, &snmpdata))
+//		return 1; //fail
 
-	if(snmpadapter_get_snmpdata(request, &snmpdata))
-		return 1; //fail
+	req_struct* snmpdata = NULL;
+	wdmp_parse_request(request, &snmpdata);
+	if(snmpdata == NULL)
+	{
+		ret = 1; //failed
+		goto exit1;
+	}
 
 	char* snmpcommand = NULL;
 	int len = snmpadapter_create_command(snmpdata, &snmpcommand);
 	if(snmpcommand == NULL || strlen(snmpcommand) == 0 || len == 0)
 	{
-		free_snmp_record(snmpdata);
-		return 1; // fail
+		ret = 1; //failed
+		goto exit1;
 	}
 
 	printf("[SNMPADAPTER] snmpadapter_handle_request() : command [%s]\nlength=%d\n", snmpcommand, len);
@@ -436,9 +450,8 @@ static int snmpadapter_handle_request(char* request, char *transactionId, char *
 	if (argc == 0 || argv[0] == NULL)
 	{
 		printf("[SNMPADAPTER] snmpadapter_handle_request() : could't parse arguments !\n");
-		snmpadapter_delete_command(snmpcommand);
-		free_snmp_record(snmpdata);
-		return 1; //error
+		ret = 1; //failed
+		goto exit1;
 	}
 
 	printf("[SNMPADAPTER] snmpadapter_handle_request() : argc: %d\n", argc);
@@ -460,13 +473,16 @@ static int snmpadapter_handle_request(char* request, char *transactionId, char *
 	else if (strstr(argv[0], SNMPADAPTER_SET) != NULL)
 	{
 		// call snmp adapter set. return back success/error response
+		printf("call snmp_adapter_send_receive_set\n");
 		snmp_adapter_send_receive_set(argc, argv, response);
 	}
 
-	snmpadapter_delete_command(snmpcommand);
-	free_snmp_record(snmpdata);
-
-	return 0;
+exit1:
+	if(snmpcommand)
+		snmpadapter_delete_command(snmpcommand);
+	if (snmpdata)
+		wdmp_free_req_struct(snmpdata);
+	return ret;
 }
 
 /*

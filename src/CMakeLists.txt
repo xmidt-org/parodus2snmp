@@ -27,6 +27,7 @@ target_link_libraries (${PROJ_PARODUS2SNMP}
     ${CMAKE_THREAD_LIBS_INIT}
     -llibparodus
     -lwrp-c
+    -lwdmp-c
     -lmsgpackc
     -ltrower-base64
     -lnanomsg

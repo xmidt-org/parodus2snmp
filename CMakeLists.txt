@@ -30,11 +30,12 @@ set(LIBRARY_DIR ${INSTALL_DIR}/lib)
 set(LIBRARY_DIR64 ${INSTALL_DIR}/lib64)
 include_directories(${INCLUDE_DIR}
                     ${INCLUDE_DIR}/cjson
-                    ${INCLUDE_DIR}/wrp-c
+                    ${INCLUDE_DIR}/wrp-c                    
                     ${INCLUDE_DIR}/libparodus
                     ${INCLUDE_DIR}/libseshat
                     ${INCLUDE_DIR}/msgpack
                     ${INCLUDE_DIR}/trower-base64
+                    ${INCLUDE_DIR}/wdmp-c
                     ${INCLUDE_DIR}/cimplog)
 include_directories (SYSTEM /usr/include)
 
@@ -118,6 +119,18 @@ ExternalProject_Add(cJSON
 )
 add_library(libcJSON STATIC SHARED IMPORTED)
 add_dependencies(libcJSON cJSON)
+
+# wdmp-c external dependency
+#-------------------------------------------------------------------------------
+ExternalProject_Add(wdmp-c
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/wdmp-c
+    GIT_REPOSITORY https://github.com/Comcast/wdmp-c.git
+    GIT_TAG "master"
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+                  -DBUILD_TESTING=OFF
+)
+add_library(libwdmp-c STATIC SHARED IMPORTED)
+add_dependencies(libwdmp-c wdmp-c)
 
 
 # wrp-c external dependency

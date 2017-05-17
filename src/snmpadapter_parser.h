@@ -106,13 +106,15 @@ typedef struct _snmpadapter_record
 /*                             Internal functions                             */
 /*----------------------------------------------------------------------------*/
 
-void free_snmp_record(snmpadapter_record* rec);
+char* snmpadapter_get_snmp_command_name(cJSON *request);
 
-char* get_snmp_command_name(cJSON *request);
+char snmpadapter_get_snmp_type(DATA_TYPE type);
 
-int extract_snmp_get_params(cJSON *request, snmpadapter_record** snmp_params);
+int snmpadapter_extract_snmp_get_params(cJSON *request, snmpadapter_record** snmp_params);
 
-int extract_snmp_set_params(cJSON *request, snmpadapter_record** snmp_params);
+int snmpadapter_extract_snmp_set_params(cJSON *request, snmpadapter_record** snmp_params);
+
+void snmpadapter_free_snmp_record(snmpadapter_record* rec);
 
 
 #endif /* __SNMPADAPTER_PARSER_H__ */

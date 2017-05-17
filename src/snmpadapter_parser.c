@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <wdmp-c.h>
 #include "snmpadapter_parser.h"
 
 /* JSON request /response names */
@@ -36,7 +37,7 @@
 #define SNMPADAPTER_OID_VALUE_NAME "value"
 
 
-void free_snmp_record(snmpadapter_record* rec)
+void snmpadapter_free_snmp_record(snmpadapter_record* rec)
 {
 	if(rec == NULL)
 		return;
@@ -81,7 +82,47 @@ void free_snmp_record(snmpadapter_record* rec)
 	free(rec);
 }
 
-char* get_snmp_command_name(cJSON *request)
+/* Return one of the SNMP types
+ * 	i: INTEGER, u: unsigned INTEGER, t: TIMETICKS, a: IPADDRESS
+ *	o: OBJID, s: STRING, x: HEX STRING, d: DECIMAL STRING, b: BITS
+ *	U: unsigned int64, I: signed int64, F: float, D: double
+ *
+ */
+char snmpadapter_get_snmp_type(DATA_TYPE type)
+{
+	switch (type)
+	{
+		case WDMP_STRING:
+			return 's';
+		case WDMP_INT:
+			return 'i';
+		case WDMP_UINT:
+			return 'u';
+		case WDMP_BOOLEAN:
+			return 'i';
+		case WDMP_DATETIME:
+			return 't';
+		case WDMP_BASE64:
+			return 'U';
+		case WDMP_LONG:
+			return 'I';
+		case WDMP_ULONG:
+			return 'U';
+		case WDMP_FLOAT:
+			return 'F';
+		case WDMP_DOUBLE:
+			return 'D';
+		case WDMP_BYTE:
+			return 'i';
+		case WDMP_NONE:
+			return 's';
+	}
+
+	return 's'; //default
+}
+
+
+char* snmpadapter_get_snmp_command_name(cJSON *request)
 {
 	if(request)
 		return cJSON_GetObjectItem(request, SNMPADAPTER_REQUEST_COMMAND_NAME)->valuestring;
@@ -93,7 +134,7 @@ char* get_snmp_command_name(cJSON *request)
  * e.g.
  * json: {"command":"GET","names":["1.3.6.1.2.1.69.1.3.8.0","1.3.6.1.2.1.69.1.3.8.1","1.3.6.1.2.1.69.1.3.8.2"]}
  */
-int extract_snmp_get_params(cJSON *request, snmpadapter_record** psnmp_params)
+int snmpadapter_extract_snmp_get_params(cJSON *request, snmpadapter_record** psnmp_params)
 {
 	cJSON *oidArray = NULL;
 	int oidCount = 0, i = 0;
@@ -136,7 +177,7 @@ int extract_snmp_get_params(cJSON *request, snmpadapter_record** psnmp_params)
  * {"command":"SET","parameters":[{"name":"Device.X_RDKCENTRAL-COM_XDNS.DefaultDeviceDnsIPv4","dataType":0,"value":"75.75.75.10"},{"name":"Device.X_RDKCENTRAL-COM_XDNS.DefaultDeviceDnsIPv6","dataType":0,"value":"2001:558:feed::7510"},{"name":"Device.X_RDKCENTRAL-COM_XDNS.DefaultDeviceTag","dataType":0,"value":"Level1_Protected Browsing"}]}
  *
  */
-int extract_snmp_set_params(cJSON *request, snmpadapter_record** psnmp_params)
+int snmpadapter_extract_snmp_set_params(cJSON *request, snmpadapter_record** psnmp_params)
 {
 	cJSON *oidParamArray = NULL;
 	int oidCount = 0, i = 0;
