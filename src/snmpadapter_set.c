@@ -60,9 +60,11 @@ int snmp_adapter_send_receive_set(int numargs, char *pargs[], char **response)
 	{
 		case NETSNMP_PARSE_ARGS_ERROR:
 		case NETSNMP_PARSE_ARGS_ERROR_USAGE:
-		return 1;
+			*response = strdup(SNMPADAPTER_PARSE_ARGS_ERROR);
+			return 1;
 		case NETSNMP_PARSE_ARGS_SUCCESS_EXIT:
-		return 0;
+			*response = strdup(SNMPADAPTER_NO_ERROR_EXIT);
+			return 0;
 		default:
 			break;
 	}
@@ -70,13 +72,14 @@ int snmp_adapter_send_receive_set(int numargs, char *pargs[], char **response)
 	if (arg >= numargs)
 	{
 		fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_set() - Missing object name\n");
+		*response = strdup(SNMPADAPTER_MISSING_OBJECT_ERROR);
 		return 1;
 	}
 	if ((numargs - arg) > 3 * SNMP_MAX_CMDLINE_OIDS)
 	{
 		fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_set() - Too many assignments specified. ");
-		fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_set() - Only %d allowed in one request.\n",
-				SNMP_MAX_CMDLINE_OIDS);
+		fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_set() - Only %d allowed in one request.\n", SNMP_MAX_CMDLINE_OIDS);
+		*response = strdup(SNMPADAPTER_MAX_OIDS_ERROR);
 		return 1;
 	}
 
@@ -112,12 +115,14 @@ int snmp_adapter_send_receive_set(int numargs, char *pargs[], char **response)
 				default:
 				fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_set() - %s: Bad object type: %c\n", pargs[arg - 1],
 						*pargs[arg]);
+				*response = strdup(SNMPADAPTER_BAD_OID_TYPE_ERROR);
 				return 1;
 			}
 		}
 		else
 		{
 			fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_set() - %s: Needs type and value\n", pargs[arg - 1]);
+			*response = strdup(SNMPADAPTER_MISSING_PARAM_ERROR);
 			return 1;
 		}
 		if (arg < numargs)
@@ -125,6 +130,7 @@ int snmp_adapter_send_receive_set(int numargs, char *pargs[], char **response)
 		else
 		{
 			fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_set() - %s: Needs value\n", pargs[arg - 2]);
+			*response = strdup(SNMPADAPTER_MISSING_PARAM_ERROR);
 			return 1;
 		}
 	}
@@ -138,6 +144,7 @@ int snmp_adapter_send_receive_set(int numargs, char *pargs[], char **response)
 	if (ss == NULL)
 	{
 		SOCK_CLEANUP;
+		*response = strdup(SNMPADAPTER_SNMP_SESSION_ERROR);
 		return 1;
 	}
 
@@ -165,6 +172,7 @@ int snmp_adapter_send_receive_set(int numargs, char *pargs[], char **response)
 	{
 		snmp_close(ss);
 		SOCK_CLEANUP;
+		*response = strdup(SNMPADAPTER_PARSE_ARGS_ERROR);
 		return 1;
 	}
 
@@ -177,6 +185,7 @@ int snmp_adapter_send_receive_set(int numargs, char *pargs[], char **response)
 	{
 		if (responsepdu->errstat == SNMP_ERR_NOERROR)
 		{
+			*response = strdup(SNMPADAPTER_SUCCESS);
 			if (!quiet)
 			{
 				for (vars = responsepdu->variables; vars;
@@ -186,8 +195,8 @@ int snmp_adapter_send_receive_set(int numargs, char *pargs[], char **response)
 		}
 		else
 		{
-			fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_set() - Error in packet.\nReason: %s\n",
-					snmp_errstring(responsepdu->errstat));
+			*response = strdup(snmp_errstring(responsepdu->errstat));
+			fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_set() - Error in packet.\nReason: %s\n", snmp_errstring(responsepdu->errstat));
 			if (responsepdu->errindex != 0)
 			{
 				fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_set() - Failed object: ");
@@ -205,11 +214,13 @@ int snmp_adapter_send_receive_set(int numargs, char *pargs[], char **response)
 	else if (status == STAT_TIMEOUT)
 	{
 		fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_set() - Timeout: No Response from %s\n", session.peername);
+		*response = strdup(SNMPADAPTER_SNMP_TIMEOUT_ERROR);
 		exitval = 1;
 	}
 	else
 	{ /* status == STAT_ERROR */
 		snmp_sess_perror("snmpset", ss);
+		*response = strdup(SNMPADAPTER_SNMP_UNKNOWN_ERROR);
 		exitval = 1;
 	}
 

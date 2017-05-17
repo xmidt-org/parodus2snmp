@@ -56,21 +56,14 @@ int snmp_adapter_send_receive_get(int numargs, char* pargs[], char **response)
 	/*
 	 * get the command arguments
 	 */
-	/*
-	 printf("[SNMPADAPTER] snmp_adapter_send_receive_get() : numargs: %d\n", numargs);
-	 int cnt = numargs, i = 0;
-	 while (cnt--)
-	 {
-	 printf("[SNMPADAPTER] snmp_adapter_send_receive_get() : pargs[%d] : %s\n", i, pargs[i]);
-	 i++;
-	 }
-	 */
 	switch (arg = snmp_parse_args(numargs, pargs, &session, "C:", NULL))
 	{
 		case NETSNMP_PARSE_ARGS_ERROR:
 		case NETSNMP_PARSE_ARGS_ERROR_USAGE:
+			*response = strdup(SNMPADAPTER_PARSE_ARGS_ERROR);
 			exit(1);
 		case NETSNMP_PARSE_ARGS_SUCCESS_EXIT:
+			*response = strdup(SNMPADAPTER_NO_ERROR_EXIT);
 			exit(0);
 		default:
 			break;
@@ -79,6 +72,7 @@ int snmp_adapter_send_receive_get(int numargs, char* pargs[], char **response)
 	if (arg >= numargs)
 	{
 		fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_get() - Missing object name\n");
+		*response = strdup(SNMPADAPTER_MISSING_OBJECT_ERROR);
 		exit(1);
 	}
 
@@ -86,6 +80,7 @@ int snmp_adapter_send_receive_get(int numargs, char* pargs[], char **response)
 	{
 		fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_get() - Too many object identifiers specified. ");
 		fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_get() - Only %d allowed in one request.\n", SNMP_MAX_CMDLINE_OIDS);
+		*response = strdup(SNMPADAPTER_MAX_OIDS_ERROR);
 		exit(1);
 	}
 
@@ -108,6 +103,7 @@ int snmp_adapter_send_receive_get(int numargs, char* pargs[], char **response)
 		 */
 		snmp_sess_perror("snmpget", &session);
 		SOCK_CLEANUP;
+		*response = strdup(SNMPADAPTER_SNMP_SESSION_ERROR);
 		exit(1);
 	}
 
@@ -130,6 +126,7 @@ int snmp_adapter_send_receive_get(int numargs, char* pargs[], char **response)
 	{
 		snmp_close(ss);
 		SOCK_CLEANUP;
+		*response = strdup(SNMPADAPTER_SNMP_SESSION_ERROR);
 		exit(1);
 	}
 
@@ -150,6 +147,7 @@ int snmp_adapter_send_receive_get(int numargs, char* pargs[], char **response)
 					vars && len < MAX_RESPONSE_BUFFER_SIZE - 1;
 					vars = vars->next_variable)
 			{
+				//MURUGAN: print variables to response buffer
 				snprint_variable(p, MAX_RESPONSE_BUFFER_SIZE - len, vars->name, vars->name_length, vars);
 				len = strlen(responsebuffer);
 				responsebuffer[len] = ',';
@@ -189,8 +187,7 @@ int snmp_adapter_send_receive_get(int numargs, char* pargs[], char **response)
 			/*
 			 * retry if the errored variable was successfully removed
 			 */
-			if (!netsnmp_ds_get_boolean(NETSNMP_DS_APPLICATION_ID,
-			NETSNMP_DS_APP_DONT_FIX_PDUS))
+			if (!netsnmp_ds_get_boolean(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_APP_DONT_FIX_PDUS))
 			{
 				pdu = snmp_fix_pdu(responsepdu, SNMP_MSG_GET);
 				snmp_free_pdu(responsepdu);
@@ -206,12 +203,14 @@ int snmp_adapter_send_receive_get(int numargs, char* pargs[], char **response)
 	else if (status == STAT_TIMEOUT)
 	{
 		fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_get() - Timeout: No Response from %s.\n", session.peername);
+		*response = strdup(SNMPADAPTER_SNMP_TIMEOUT_ERROR);
 		exitval = 1;
 
 	}
 	else
 	{ /* status == STAT_ERROR */
 		snmp_sess_perror("snmpget", ss);
+		*response = strdup(SNMPADAPTER_SNMP_UNKNOWN_ERROR);
 		exitval = 1;
 
 	} /* endif -- STAT_SUCCESS */

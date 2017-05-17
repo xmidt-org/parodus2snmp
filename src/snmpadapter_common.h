@@ -5,17 +5,24 @@
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
 
-/*
-#define COMCAST_COMMUNITY_TOKEN "hDaFHJG7"
-#define COMCAST_COMMUNITY_CMD "-c"
-#define SNMPADAPTER_SUPPORTED_VERSION  "-v2c"
-#define TARGET_AGENT  "10.255.244.168"
-*/
-
-
 #ifndef RUN_ON_TARGET_GW
 #define SNMPADAPTER_PARODUS_URL "tcp://127.0.0.1:6666"
 #endif
+
+/*
+ * Error Types
+ */
+#define SNMPADAPTER_SUCCESS 				"Success"
+#define SNMPADAPTER_NO_ERROR_EXIT 			"No Error"
+#define SNMPADAPTER_PARSE_ARGS_ERROR 		"Error Parsing Arguments"
+#define SNMPADAPTER_MISSING_PARAM_ERROR 	"Missing OID Type or Value"
+#define SNMPADAPTER_MISSING_OBJECT_ERROR 	"Missing Object name"
+#define SNMPADAPTER_MAX_OIDS_ERROR 			"Too many Object Identifiers specified"
+#define SNMPADAPTER_BAD_OID_TYPE_ERROR 		"Bad Object Identifier Type specified"
+#define SNMPADAPTER_SNMP_SESSION_ERROR 		"Error creating SNMP session"
+#define SNMPADAPTER_SNMP_TIMEOUT_ERROR 		"Timeout Communicating to SNMP Agent"
+#define SNMPADAPTER_SNMP_UNKNOWN_ERROR 		"Unknown Error calling SNMP agent"
+
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */

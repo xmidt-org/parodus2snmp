@@ -463,17 +463,16 @@ static int snmpadapter_handle_request(char* request, char *transactionId, char *
 		i++;
 	}
 
-	printf("find appropriate adapter method to call\n");
 	if (strstr(argv[0], SNMPADAPTER_GET) != NULL)
 	{
 		// call snmp adapter get, return back response
-		printf("call snmp_adapter_send_receive_get\n");
+		printf("call snmp_adapter_send_receive_get...\n");
 		snmp_adapter_send_receive_get(argc, argv, response);
 	}
 	else if (strstr(argv[0], SNMPADAPTER_SET) != NULL)
 	{
 		// call snmp adapter set. return back success/error response
-		printf("call snmp_adapter_send_receive_set\n");
+		printf("call snmp_adapter_send_receive_set...\n");
 		snmp_adapter_send_receive_set(argc, argv, response);
 	}
 
@@ -536,32 +535,33 @@ static void send_receive_from_parodus()
 				clock_gettime(CLOCK_REALTIME, startPtr);
 
 				// Process request message and get the response payload to send back
-				printf("[SNMPADAPTER] send_receive_from_parodus() : call snmpadapter_handle_request..\n");
 				snmpadapter_handle_request((char *) wrp_msg->u.req.payload, wrp_msg->u.req.transaction_uuid, ((char **) (&(res_wrp_msg->u.req.payload))));
 
 				if(res_wrp_msg->u.req.payload == NULL)
 				{
 					printf("[SNMPADAPTER] send_receive_from_parodus() : Response payload is NULL !!\n");
+
+					//MURUGAN: TODO : prepare and send appropriate error message in response
 					res_wrp_msg->u.req.payload_size = 0;
 					continue;
 				}
 				else
 				{
 					printf("[SNMPADAPTER] send_receive_from_parodus() : Response payload is %s\n", (char *) (res_wrp_msg->u.req.payload));
-
 					res_wrp_msg->u.req.payload_size = strlen(res_wrp_msg->u.req.payload);
-					res_wrp_msg->msg_type = wrp_msg->msg_type;
-					res_wrp_msg->u.req.source = wrp_msg->u.req.dest;
-					res_wrp_msg->u.req.dest = wrp_msg->u.req.source;
-					res_wrp_msg->u.req.transaction_uuid = wrp_msg->u.req.transaction_uuid;
-					contentType = (char *) malloc(sizeof(char) * (strlen(CONTENT_TYPE_ASCII) + 1));
-					strncpy(contentType, CONTENT_TYPE_ASCII, strlen(CONTENT_TYPE_ASCII) + 1);
-					res_wrp_msg->u.req.content_type = contentType;
 				}
 
 				// Send Response back
+
+				res_wrp_msg->msg_type = wrp_msg->msg_type;
+				res_wrp_msg->u.req.source = wrp_msg->u.req.dest;
+				res_wrp_msg->u.req.dest = wrp_msg->u.req.source;
+				res_wrp_msg->u.req.transaction_uuid = wrp_msg->u.req.transaction_uuid;
+				contentType = (char *) malloc(sizeof(char) * (strlen(CONTENT_TYPE_ASCII) + 1));
+				strncpy(contentType, CONTENT_TYPE_ASCII, strlen(CONTENT_TYPE_ASCII) + 1);
+				res_wrp_msg->u.req.content_type = contentType;
+
 				int sendStatus = libparodus_send(current_instance, res_wrp_msg);
-				printf("[SNMPADAPTER] send_receive_from_parodus() : sendStatus is %d\n", sendStatus);
 				if (sendStatus == 0)
 				{
 					printf("[SNMPADAPTER] send_receive_from_parodus() : Sent message successfully to parodus\n");
@@ -573,6 +573,8 @@ static void send_receive_from_parodus()
 
 				clock_gettime(CLOCK_REALTIME, endPtr);
 				printf("[SNMPADAPTER] send_receive_from_parodus() : Elapsed time : %ld ms\n", diff_time(startPtr, endPtr));
+
+				//free response data structures
 				wrp_free_struct(res_wrp_msg);
 
 				break;
@@ -589,6 +591,7 @@ static void send_receive_from_parodus()
 				break;
 		}
 
+		//free request data structure
 		free(wrp_msg);
 	}//while (1)
 
