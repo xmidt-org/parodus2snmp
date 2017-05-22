@@ -39,7 +39,7 @@ include_directories(${INCLUDE_DIR}
                     ${INCLUDE_DIR}/cimplog)
 include_directories (SYSTEM /usr/include)
 
-#enable_testing()
+enable_testing()
 
 #find net-snmp opensource package 
 include(FindPackageNetSNMP.cmake)
@@ -124,6 +124,7 @@ add_dependencies(libcJSON cJSON)
 #-------------------------------------------------------------------------------
 ExternalProject_Add(wdmp-c
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/wdmp-c
+    #GIT_REPOSITORY https://github.com/MuruganViswanathan/wdmp-c.git
     GIT_REPOSITORY https://github.com/Comcast/wdmp-c.git
     GIT_TAG "master"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
