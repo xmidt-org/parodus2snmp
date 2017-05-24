@@ -40,11 +40,11 @@
  */
 typedef enum _SNMPADAPTER_TYPE
 {
-	SNMPADAPTER_TYPE_UNDEFINED = 0,
-	SNMPADAPTER_TYPE_GET = 1,
-	SNMPADAPTER_TYPE_SET
+    SNMPADAPTER_TYPE_UNDEFINED = 0,
+    SNMPADAPTER_TYPE_GET = 1,
+    SNMPADAPTER_TYPE_SET
 
-}SNMPADAPTER_TYPE;
+} SNMPADAPTER_TYPE;
 
 /*
  * OIDs
@@ -70,20 +70,19 @@ typedef struct _snmpadapter_get_record
  */
 typedef struct _snmpadapter_set_record
 {
-	oid_struct param[SNMPADAPTER_MAX_OIDS];
+    oid_struct param[SNMPADAPTER_MAX_OIDS];
     int count;
 } snmpadapter_set_record;
 
 typedef struct _snmpadapter_record
 {
-	SNMPADAPTER_TYPE type;
+    SNMPADAPTER_TYPE type;
     union
-	{
-		snmpadapter_get_record *get;
-		snmpadapter_set_record *set;
+    {
+        snmpadapter_get_record *get;
+        snmpadapter_set_record *set;
     } u;
 } snmpadapter_record;
-
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -115,6 +114,5 @@ int snmpadapter_extract_snmp_get_params(cJSON *request, snmpadapter_record** snm
 int snmpadapter_extract_snmp_set_params(cJSON *request, snmpadapter_record** snmp_params);
 
 void snmpadapter_free_snmp_record(snmpadapter_record* rec);
-
 
 #endif /* __SNMPADAPTER_PARSER_H__ */

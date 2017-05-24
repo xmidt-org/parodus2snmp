@@ -15,7 +15,7 @@
  *
  */
 /*
- * snmpadapter_main.c
+ * snmpadapter_main.h
  *
  *  Created on: Apr 20, 2017
  *      Author: Murugan Viswanathan
@@ -27,6 +27,14 @@
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
+
+#define SNMPADAPTER_MAX_ARGS        150
+/* #define CONTENT_TYPE_JSON        "application/json" */
+#define CONTENT_TYPE_ASCII          "text/plain; charset=us-ascii"
+#define DEVICE_PROPS_FILE           "/etc/device.properties"
+#define CLIENT_PORT_NUM             6667
+#define URL_SIZE                    64
+
 /*
  * SNMP commands
  */
@@ -40,11 +48,9 @@
 #define SNMPADAPTER_BULKWALK 	"snmpbulkwalk"
 #define SNMPADAPTER_TRAP 		"snmptrap"
 
-
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
-
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */

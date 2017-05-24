@@ -38,190 +38,192 @@
 
 int snmp_adapter_send_receive_get(int numargs, char* pargs[], char **response)
 {
-	char responsebuffer[MAX_RESPONSE_BUFFER_SIZE] = { };
-	netsnmp_session session, *ss;
-	netsnmp_pdu *pdu;
-	netsnmp_pdu *responsepdu;
-	netsnmp_variable_list *vars;
-	int arg;
-	int count;
-	int current_name = 0;
-	char *names[SNMP_MAX_CMDLINE_OIDS];
-	oid name[MAX_OID_LEN];
-	size_t name_length;
-	int status;
-	int failures = 0;
-	int exitval = 0;
+    char responsebuffer[MAX_RESPONSE_BUFFER_SIZE] = { };
+    netsnmp_session session, *ss;
+    netsnmp_pdu *pdu;
+    netsnmp_pdu *responsepdu;
+    netsnmp_variable_list *vars;
+    int arg;
+    int count;
+    int current_name = 0;
+    char *names[SNMP_MAX_CMDLINE_OIDS];
+    oid name[MAX_OID_LEN];
+    size_t name_length;
+    int status;
+    int failures = 0;
+    int exitval = 0;
 
-	/*
-	 * get the command arguments
-	 */
-	switch (arg = snmp_parse_args(numargs, pargs, &session, "C:", NULL))
-	{
-		case NETSNMP_PARSE_ARGS_ERROR:
-		case NETSNMP_PARSE_ARGS_ERROR_USAGE:
-			*response = strdup(SNMPADAPTER_PARSE_ARGS_ERROR);
-			exit(1);
-		case NETSNMP_PARSE_ARGS_SUCCESS_EXIT:
-			*response = strdup(SNMPADAPTER_NO_ERROR_EXIT);
-			exit(0);
-		default:
-			break;
-	}
+    /*
+     * get the command arguments
+     */
+    switch (arg = snmp_parse_args(numargs, pargs, &session, "C:", NULL))
+    {
+        case NETSNMP_PARSE_ARGS_ERROR:
+        case NETSNMP_PARSE_ARGS_ERROR_USAGE:
+            *response = strdup(SNMPADAPTER_PARSE_ARGS_ERROR);
+            exit(1);
+        case NETSNMP_PARSE_ARGS_SUCCESS_EXIT:
+            *response = strdup(SNMPADAPTER_NO_ERROR_EXIT);
+            exit(0);
+        default:
+            break;
+    }
 
-	if (arg >= numargs)
-	{
-		fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_get() - Missing object name\n");
-		*response = strdup(SNMPADAPTER_MISSING_OBJECT_ERROR);
-		exit(1);
-	}
+    if (arg >= numargs)
+    {
+        SnmpAdapterError("[SNMPADAPTER] snmp_adapter_send_receive_get() - Missing object name\n");
+        *response = strdup(SNMPADAPTER_MISSING_OBJECT_ERROR);
+        exit(1);
+    }
 
-	if ((numargs - arg) > SNMP_MAX_CMDLINE_OIDS)
-	{
-		fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_get() - Too many object identifiers specified. ");
-		fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_get() - Only %d allowed in one request.\n", SNMP_MAX_CMDLINE_OIDS);
-		*response = strdup(SNMPADAPTER_MAX_OIDS_ERROR);
-		exit(1);
-	}
+    if ((numargs - arg) > SNMP_MAX_CMDLINE_OIDS)
+    {
+        SnmpAdapterError("[SNMPADAPTER] snmp_adapter_send_receive_get() - Too many object identifiers specified. ");
+        SnmpAdapterError("[SNMPADAPTER] snmp_adapter_send_receive_get() - Only %d allowed in one request.\n", SNMP_MAX_CMDLINE_OIDS);
+        *response = strdup(SNMPADAPTER_MAX_OIDS_ERROR);
+        exit(1);
+    }
 
-	/*
-	 * get the object names
-	 */
-	for (; arg < numargs; arg++)
-		names[current_name++] = pargs[arg];
+    /*
+     * get the object names
+     */
+    for (; arg < numargs; arg++)
+        names[current_name++] = pargs[arg];
 
-	SOCK_STARTUP;
+    SOCK_STARTUP;
 
-	/*
-	 * Open an SNMP session.
-	 */
-	ss = snmp_open(&session);
-	if (ss == NULL)
-	{
-		/*
-		 * diagnose snmp_open errors with the input netsnmp_session pointer
-		 */
-		snmp_sess_perror("snmpget", &session);
-		SOCK_CLEANUP;
-		*response = strdup(SNMPADAPTER_SNMP_SESSION_ERROR);
-		exit(1);
-	}
+    /*
+     * Open an SNMP session.
+     */
+    ss = snmp_open(&session);
+    if (ss == NULL)
+    {
+        /*
+         * diagnose snmp_open errors with the input netsnmp_session pointer
+         */
+        snmp_sess_perror("snmpget", &session);
+        SOCK_CLEANUP;
+        *response = strdup(SNMPADAPTER_SNMP_SESSION_ERROR);
+        exit(1);
+    }
 
-	/*
-	 * Create PDU for GET request and add object names to request.
-	 */
-	pdu = snmp_pdu_create(SNMP_MSG_GET);
-	for (count = 0; count < current_name; count++)
-	{
-		name_length = MAX_OID_LEN;
-		if (!snmp_parse_oid(names[count], name, &name_length))
-		{
-			snmp_perror(names[count]);
-			failures++;
-		}
-		else
-			snmp_add_null_var(pdu, name, name_length);
-	}
-	if (failures)
-	{
-		snmp_close(ss);
-		SOCK_CLEANUP;
-		*response = strdup(SNMPADAPTER_SNMP_SESSION_ERROR);
-		exit(1);
-	}
+    /*
+     * Create PDU for GET request and add object names to request.
+     */
+    pdu = snmp_pdu_create(SNMP_MSG_GET);
+    for (count = 0; count < current_name; count++)
+    {
+        name_length = MAX_OID_LEN;
+        if (!snmp_parse_oid(names[count], name, &name_length))
+        {
+            snmp_perror(names[count]);
+            failures++;
+        }
+        else
+            snmp_add_null_var(pdu, name, name_length);
+    }
+    if (failures)
+    {
+        snmp_close(ss);
+        SOCK_CLEANUP;
+        *response = strdup(SNMPADAPTER_SNMP_SESSION_ERROR);
+        exit(1);
+    }
 
-	/*
-	 * Perform the request.
-	 *
-	 * If the Get Request fails, note the OID that caused the error,
-	 * "fix" the PDU (removing the error-prone OID) and retry.
-	 */
-	retry: status = snmp_synch_response(ss, pdu, &responsepdu);
-	if (status == STAT_SUCCESS)
-	{
-		if (responsepdu->errstat == SNMP_ERR_NOERROR)
-		{
-			char* p = responsebuffer;
-			int len = 0;
-			for (vars = responsepdu->variables;
-					vars && len < MAX_RESPONSE_BUFFER_SIZE - 1;
-					vars = vars->next_variable)
-			{
-				//MURUGAN: print variables to response buffer
-				snprint_variable(p, MAX_RESPONSE_BUFFER_SIZE - len, vars->name, vars->name_length, vars);
-				len = strlen(responsebuffer);
-				responsebuffer[len] = ',';
-				p = responsebuffer + len + 1;
+    /*
+     * Perform the request.
+     *
+     * If the Get Request fails, note the OID that caused the error,
+     * "fix" the PDU (removing the error-prone OID) and retry.
+     */
+    retry: status = snmp_synch_response(ss, pdu, &responsepdu);
+    if (status == STAT_SUCCESS)
+    {
+        if (responsepdu->errstat == SNMP_ERR_NOERROR)
+        {
+            char* p = responsebuffer;
+            int len = 0;
+            for (vars = responsepdu->variables;
+                    vars && len < MAX_RESPONSE_BUFFER_SIZE - 1;
+                    vars = vars->next_variable)
+            {
+                //MURUGAN: print variables to response buffer
+                snprint_variable(p, MAX_RESPONSE_BUFFER_SIZE - len, vars->name, vars->name_length, vars);
+                len = strlen(responsebuffer);
+                responsebuffer[len] = ',';
+                p = responsebuffer + len + 1;
 
-				print_variable(vars->name, vars->name_length, vars);
-			}
+                print_variable(vars->name, vars->name_length, vars);
+            }
 
-			*(--p) = '\0'; //null terminate after all vars are copied to responsebuffer
-			printf("MURUGAN: responsebuffer=[%s]\n", responsebuffer);
+            *(--p) = '\0'; //null terminate after all vars are copied to responsebuffer
+            SnmpAdapterPrint("MURUGAN: responsebuffer=[%s]\n", responsebuffer);
 
-			// malloc response. caller free response after use
-			if ((*response = (char*) calloc(len + 1, 1)) != NULL)
-			{
-				strncpy(*response, responsebuffer, len + 1);
-			}
-		}
-		else
-		{
-			fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_get() - Error in packet\nReason: %s\n", snmp_errstring(responsepdu->errstat));
+            // malloc response. caller free response after use
+            if ((*response = (char*) calloc(len + 1, 1)) != NULL)
+            {
+                strncpy(*response, responsebuffer, len + 1);
+            }
+        }
+        else
+        {
+            SnmpAdapterError("[SNMPADAPTER] snmp_adapter_send_receive_get() - Error in packet\nReason: %s\n", snmp_errstring(responsepdu->errstat));
 
-			if (responsepdu->errindex != 0)
-			{
-				fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_get() - Failed object: ");
-				for (count = 1, vars = responsepdu->variables;
-						vars && count != responsepdu->errindex;
-						vars = vars->next_variable, count++)
-					/*EMPTY*/;
-				if (vars)
-				{
-					fprint_objid(stderr, vars->name, vars->name_length);
-				}
-				fprintf(stderr, "\n");
-			}
-			exitval = 2;
+            if (responsepdu->errindex != 0)
+            {
+                SnmpAdapterError("[SNMPADAPTER] snmp_adapter_send_receive_get() - Failed object: ");
+                for (count = 1, vars = responsepdu->variables;
+                        vars && count != responsepdu->errindex;
+                        vars = vars->next_variable, count++)
+                    /*EMPTY*/;
+                if (vars)
+                {
+                    fprint_objid(stderr, vars->name, vars->name_length);
+                }
+                SnmpAdapterError("\n");
+            }
+            exitval = 2;
 
-			/*
-			 * retry if the errored variable was successfully removed
-			 */
-			if (!netsnmp_ds_get_boolean(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_APP_DONT_FIX_PDUS))
-			{
-				pdu = snmp_fix_pdu(responsepdu, SNMP_MSG_GET);
-				snmp_free_pdu(responsepdu);
-				responsepdu = NULL;
-				if (pdu != NULL)
-				{
-					goto retry;
-				}
-			}
-		} /* endif -- SNMP_ERR_NOERROR */
+            /*
+             * retry if the errored variable was successfully removed
+             */
+            if (!netsnmp_ds_get_boolean(NETSNMP_DS_APPLICATION_ID, NETSNMP_DS_APP_DONT_FIX_PDUS))
+            {
+                pdu = snmp_fix_pdu(responsepdu, SNMP_MSG_GET);
+                snmp_free_pdu(responsepdu);
+                responsepdu = NULL;
+                if (pdu != NULL)
+                {
+                    goto retry;
+                }
+            }
+        } /* endif -- SNMP_ERR_NOERROR */
 
-	}
-	else if (status == STAT_TIMEOUT)
-	{
-		fprintf(stderr, "[SNMPADAPTER] snmp_adapter_send_receive_get() - Timeout: No Response from %s.\n", session.peername);
-		*response = strdup(SNMPADAPTER_SNMP_TIMEOUT_ERROR);
-		exitval = 1;
+    }
+    else if (status == STAT_TIMEOUT)
+    {
+        SnmpAdapterError("[SNMPADAPTER] snmp_adapter_send_receive_get() - Timeout: No Response from %s.\n", session.peername);
+        *response = strdup(SNMPADAPTER_SNMP_TIMEOUT_ERROR);
+        exitval = 1;
 
-	}
-	else
-	{ /* status == STAT_ERROR */
-		snmp_sess_perror("snmpget", ss);
-		*response = strdup(SNMPADAPTER_SNMP_UNKNOWN_ERROR);
-		exitval = 1;
+    }
+    else
+    { /* status == STAT_ERROR */
+        snmp_sess_perror("snmpget", ss);
+        *response = strdup(SNMPADAPTER_SNMP_UNKNOWN_ERROR);
+        exitval = 1;
 
-	} /* endif -- STAT_SUCCESS */
+    } /* endif -- STAT_SUCCESS */
 
-	if (responsepdu)
-		snmp_free_pdu(responsepdu);
-	snmp_close(ss);
-	SOCK_CLEANUP;
-	printf("end\n");
+    if (responsepdu)
+    {
+        snmp_free_pdu(responsepdu);
+    }
+    snmp_close(ss);
+    SOCK_CLEANUP;
+    SnmpAdapterPrint("end\n");
 
-	return exitval;
+    return exitval;
 }
 /* eof */
 

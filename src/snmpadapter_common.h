@@ -1,14 +1,25 @@
 #ifndef _SNMPADAPTER_COMMON_H_
 #define _SNMPADAPTER_COMMON_H_
 
+#include <cimplog/cimplog.h>
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
-
+/**
+ * @brief Enable this when running on target (rdkb device)
+ */
+/* #define RUN_ON_TARGET_GW */
 #ifndef RUN_ON_TARGET_GW
 #define SNMPADAPTER_PARODUS_URL "tcp://127.0.0.1:6666"
 #endif
 
+/**
+ * @brief Enables or disables debug logs.
+ */
+#define LOGGING_MODULE                      "PARODUS2SNMP"
+#define SnmpAdapterError(...)               cimplog_error(LOGGING_MODULE, __VA_ARGS__)
+#define SnmpAdapterInfo(...)                cimplog_info(LOGGING_MODULE, __VA_ARGS__)
+#define SnmpAdapterPrint(...)               cimplog_debug(LOGGING_MODULE, __VA_ARGS__)
 /*
  * Error Types
  */
@@ -22,7 +33,6 @@
 #define SNMPADAPTER_SNMP_SESSION_ERROR 		"Error creating SNMP session"
 #define SNMPADAPTER_SNMP_TIMEOUT_ERROR 		"Timeout Communicating to SNMP Agent"
 #define SNMPADAPTER_SNMP_UNKNOWN_ERROR 		"Unknown Error calling SNMP agent"
-
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
@@ -51,6 +61,5 @@ int snmp_adapter_send_receive_get(int numargs, char *pargs[], char **response);
  *    		1	- error
  */
 int snmp_adapter_send_receive_set(int numargs, char *pargs[], char **response);
-
 
 #endif /* _SNMPADAPTER_COMMON_H_ */
