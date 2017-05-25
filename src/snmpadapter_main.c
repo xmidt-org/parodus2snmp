@@ -164,7 +164,6 @@ static void connect_to_parodus()
             backoffRetryTime = (int) pow(2, c) - 1;
         }
 
-        SnmpAdapterPrint("New backoffRetryTime value calculated as %d seconds\n", backoffRetryTime);
         int ret = libparodus_init(&g_current_instance, &cfg1);
         SnmpAdapterPrint("ret is %d\n", ret);
         if (ret == 0)
@@ -174,13 +173,15 @@ static void connect_to_parodus()
         }
         else
         {
-            SnmpAdapterPrint("Init for parodus failed: '%s' !!!\n", libparodus_strerror(ret));
+            SnmpAdapterPrint("Initialization of libparodus failed: '%s' ! Parodus may not be running.\n", libparodus_strerror(ret));
+            SnmpAdapterPrint("Going to retry again in %d seconds...\n", backoffRetryTime);
             sleep(backoffRetryTime);
             c++;
         }
-        retval = libparodus_shutdown(g_current_instance);
+        retval = libparodus_shutdown(&g_current_instance);
         SnmpAdapterPrint("libparodus_shutdown retval %d\n", retval);
     }
+
 }
 
 /*
@@ -316,80 +317,6 @@ static void snmpadapter_delete_command(char* command)
     return;
 }
 
-/*
- static int snmpadapter_create_command(snmpadapter_record* snmpdata, int* pargc, char** pargv)
- {
- if (snmpdata == NULL)
- return 1; //failed
-
- if (snmpdata->type == SNMPADAPTER_TYPE_GET)
- {
- *pargc = 0;
-
- pargv[(*pargc)++] = SNMPADAPTER_GET;
- pargv[(*pargc)++] = SNMPADAPTER_SUPPORTED_VERSION;
- pargv[(*pargc)++] = COMCAST_COMMUNITY_CMD;
- pargv[(*pargc)++] = COMCAST_COMMUNITY_TOKEN;
- pargv[(*pargc)++] = TARGET_AGENT;
-
-
- if(snmpdata->u.get == NULL)
- {
- *pargc = 0; pargv[0] = NULL;
- return 1; //failed
- }
-
- for(int c = 0; c < snmpdata->u.get->count && c < SNMPADAPTER_MAX_OIDS; c++)
- {
- pargv[(*pargc)++] = snmpdata->u.get->oid[c];
- }
- }
- else if (snmpdata->type == SNMPADAPTER_TYPE_SET)
- {
-
- }
-
- return 0; //success
- }
- */
-
-/*
- * snmpadapter_get_snmpdata
- *   - Get SNMP command and data from Request payload
- */
-/*
- static int snmpadapter_get_snmpdata(char* payload, snmpadapter_record** psnmpdata)
- {
- cJSON *json_obj = cJSON_Parse(payload);
- if (json_obj != NULL)
- {
- char* command = get_snmp_command_name(json_obj);
-
- if (command != NULL)
- {
- if (strcmp(command, "GET") == 0)
- {
- extract_snmp_get_params(json_obj, psnmpdata);
- }
- else if ((strcmp(command, "SET") == 0))
- {
- extract_snmp_set_params(json_obj, psnmpdata);
- }
- else
- {
- SnmpAdapterPrint("[SNMPADAPTER] snmpadapter_get_snmpdata() : Unknown Command : \"%s\"\n", command);
- }
- }
- cJSON_Delete(json_obj);
- }
- else
- {
- SnmpAdapterPrint("[SNMPADAPTER] snmpadapter_get_snmpdata() : Could not parse payload!!\n");
- }
-
- return 0; //success
- }
- */
 
 /*
  * snmpadapter_handle_request
@@ -563,11 +490,11 @@ static void send_receive_from_parodus()
                 break;
         }
 
-        //free request data structure
         free(wrp_msg);
+
     } //while (1)
 
-    libparodus_shutdown(g_current_instance);
+    libparodus_shutdown(&g_current_instance);
 
     SnmpAdapterPrint("End of parodus_upstream\n");
     return;
