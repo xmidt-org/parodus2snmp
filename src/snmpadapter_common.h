@@ -17,9 +17,13 @@
  * @brief Enables or disables debug logs.
  */
 #define LOGGING_MODULE                      "PARODUS2SNMP"
-#define SnmpAdapterError(...)               cimplog_error(LOGGING_MODULE, __VA_ARGS__)
-#define SnmpAdapterInfo(...)                cimplog_info(LOGGING_MODULE, __VA_ARGS__)
-#define SnmpAdapterPrint(...)               cimplog_debug(LOGGING_MODULE, __VA_ARGS__)
+//#define SnmpAdapterError(...)               cimplog_error(LOGGING_MODULE, __VA_ARGS__)
+//#define SnmpAdapterInfo(...)                cimplog_info(LOGGING_MODULE, __VA_ARGS__)
+//#define SnmpAdapterPrint(...)               cimplog_debug(LOGGING_MODULE, __VA_ARGS__)
+#define SnmpAdapterError(...)               printf( __VA_ARGS__)
+#define SnmpAdapterInfo(...)                printf( __VA_ARGS__)
+#define SnmpAdapterPrint(...)               printf( __VA_ARGS__)
+
 /*
  * Error Types
  */
