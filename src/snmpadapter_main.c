@@ -44,10 +44,10 @@
 #define COMCAST_COMMUNITY_CMD "-c"
 #define SNMPADAPTER_SUPPORTED_VERSION "-v2c"
 
-#ifdef RUN_ON_TARGET_GW
-#define TARGET_AGENT "127.0.0.1"
-#else /* for testing */
+#ifdef SNMPADAPTER_TEST_STANDALONE /* for unit testing on standalone machine*/
 #define TARGET_AGENT "10.255.244.168"
+#else
+#define TARGET_AGENT "127.0.0.1"
 #endif
 
 static char parodus_url[URL_SIZE] = { '\0' };
@@ -70,12 +70,11 @@ libpd_instance_t g_current_instance;
 /*
  * get_parodus_url
  */
-#ifdef RUN_ON_TARGET_GW
 static void get_parodus_url(char *parodus_url, char *client_url)
 {
 
     FILE *fp = fopen(DEVICE_PROPS_FILE, "r");
-    char atom_ip[URL_SIZE] =
+    char arm_ip[URL_SIZE] =
     {   '\0'};
 
     if (NULL != fp)
@@ -92,39 +91,39 @@ static void get_parodus_url(char *parodus_url, char *client_url)
                 strncpy(parodus_url, value, (strlen(str) - strlen("PARODUS_URL=")));
             }
 
-            if ((value = strstr(str, "ATOM_INTERFACE_IP=")))
+            if ((value = strstr(str, "ARM_INTERFACE_IP=")))
             {
-                value = value + strlen("ATOM_INTERFACE_IP=");
-                strncpy(atom_ip, value, (strlen(str) - strlen("ATOM_INTERFACE_IP=")));
+                value = value + strlen("ARM_INTERFACE_IP=");
+                strncpy(arm_ip, value, (strlen(str) - strlen("ARM_INTERFACE_IP=")));
             }
 
         }
     }
     else
     {
-        SnmpAdapterPrint("Failed to open device.properties file:%s\n", DEVICE_PROPS_FILE);
+        SnmpAdapterPrint("Failed to open device.properties file!! : %s\n", DEVICE_PROPS_FILE);
+        return;
     }
+
     fclose(fp);
 
     if (0 == parodus_url[0])
     {
-        SnmpAdapterPrint("parodus_url is not present in device. properties:%s\n", parodus_url);
-
+        SnmpAdapterPrint("parodus_url is not present in %s file! parodus_url: %s\n", DEVICE_PROPS_FILE, parodus_url);
     }
 
-    if (0 == atom_ip[0])
+    if (0 == arm_ip[0])
     {
-        SnmpAdapterPrint("atom_ip is not present in device. properties:%s\n", atom_ip);
-
+        SnmpAdapterPrint("arm_ip is not present in %s file! arm_ip: %s\n", DEVICE_PROPS_FILE, arm_ip);
     }
 
-    snprintf(client_url, URL_SIZE, "tcp://%s:%d", atom_ip, CLIENT_PORT_NUM);
+    snprintf(client_url, URL_SIZE, "tcp://%s:%d", arm_ip, CLIENT_PORT_NUM);
+
     SnmpAdapterPrint("client_url formed is %s\n", client_url);
     SnmpAdapterPrint("parodus_url formed is %s\n", parodus_url);
 
     return;
 }
-#endif
 
 /*
  * connect_to_parodus
@@ -143,15 +142,8 @@ static void connect_to_parodus()
     max_retry_sleep = (int) pow(2, backoff_max_time) - 1;
     SnmpAdapterPrint("max_retry_sleep is %d\n", max_retry_sleep);
 
-#ifdef RUN_ON_TARGET_GW
-    // get values from etc/device properties file on target gateway
     get_parodus_url(parodus_url, client_url);
-#else /* hardcoded values - for test */
-    strncpy(parodus_url, SNMPADAPTER_PARODUS_URL, URL_SIZE);
-    snprintf(client_url, URL_SIZE, "tcp://%s:%d", "127.0.0.1", CLIENT_PORT_NUM);
-#endif
 
-    //libpd_cfg_t cfg1 = { .service_name = "iot", .receive = true, .keepalive_timeout_secs = 64, .parodus_url = parodus_url, .client_url = client_url };
     //libpd_cfg_t cfg1 = { .service_name = "snmp", .receive = true, .keepalive_timeout_secs = 64, .parodus_url = parodus_url, .client_url = client_url };
     libpd_cfg_t cfg1 = { .service_name = "config", .receive = true, .keepalive_timeout_secs = 64, .parodus_url = parodus_url, .client_url = client_url };
 
@@ -173,7 +165,7 @@ static void connect_to_parodus()
         }
         else
         {
-            SnmpAdapterPrint("Initialization of libparodus failed: '%s' ! Parodus may not be running.\n", libparodus_strerror(ret));
+            SnmpAdapterPrint("Initialization of libparodus failed: '%s' ! \n", libparodus_strerror(ret));
             SnmpAdapterPrint("Going to retry again in %d seconds...\n", backoffRetryTime);
             sleep(backoffRetryTime);
             c++;

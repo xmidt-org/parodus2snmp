@@ -2,15 +2,19 @@
 #define _SNMPADAPTER_COMMON_H_
 
 #include <cimplog/cimplog.h>
+
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
 /**
- * @brief Enable this when running on target (rdkb device)
+ * @brief This is enabled for testing on stand alone system (disabled on target)
  */
-/* #define RUN_ON_TARGET_GW */
-#ifndef RUN_ON_TARGET_GW
-#define SNMPADAPTER_PARODUS_URL "tcp://127.0.0.1:6666"
+#define SNMPADAPTER_TEST_STANDALONE
+
+#ifndef SNMPADAPTER_TEST_STANDALONE
+#define DEVICE_PROPS_FILE           "/etc/device.properties"
+#else
+#define DEVICE_PROPS_FILE           "../../device.properties"
 #endif
 
 /**
