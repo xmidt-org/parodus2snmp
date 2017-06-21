@@ -34,6 +34,15 @@ static int quiet = 0;
 
 int snmp_adapter_send_receive_set(int numargs, char *pargs[], char **response)
 {
+
+#ifdef SNMPADAPTER_TEST_USINGSTUBS
+    //if using stubs to test, don't make net-snmp calls such as
+    // snmp_parse_args(), snmp_open(), snmp_pdu_create() or snmp_synch_response()
+    // Assume success and return.
+    *response = strdup(SNMPADAPTER_TEST_SUCCESS);
+    return 0; //
+#endif
+
     netsnmp_session session, *ss;
     netsnmp_pdu *pdu, *responsepdu = NULL;
     netsnmp_variable_list *vars;

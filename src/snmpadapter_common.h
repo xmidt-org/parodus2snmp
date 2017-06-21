@@ -11,6 +11,14 @@
  */
 #define SNMPADAPTER_TEST_STANDALONE
 
+/**
+ * @brief Use stubs for testing instead of net-snmp methods (disabled on target)
+ */
+#define SNMPADAPTER_TEST_USINGSTUBS
+
+/**
+ * @brief File to read config values for parodus
+ */
 #ifndef SNMPADAPTER_TEST_STANDALONE
 #define DEVICE_PROPS_FILE           "/etc/device.properties"
 #else
@@ -31,7 +39,8 @@
 /*
  * Error Types
  */
-#define SNMPADAPTER_SUCCESS 				"Success"
+#define SNMPADAPTER_SUCCESS                 "Success"
+#define SNMPADAPTER_TEST_SUCCESS            "Test Success"
 #define SNMPADAPTER_NO_ERROR_EXIT 			"No Error"
 #define SNMPADAPTER_PARSE_ARGS_ERROR 		"Error Parsing Arguments"
 #define SNMPADAPTER_MISSING_PARAM_ERROR 	"Missing OID Type or Value"

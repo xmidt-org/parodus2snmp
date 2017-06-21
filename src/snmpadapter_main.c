@@ -346,8 +346,9 @@ static int snmpadapter_handle_request(char* request, char *transactionId, char *
         goto exit1;
     }
 
-    SnmpAdapterPrint("[SNMPADAPTER] snmpadapter_handle_request() : argc: %d\n", argc);
+#ifdef SNMPADAPTER_TEST_STANDALONE
 
+    SnmpAdapterPrint("[SNMPADAPTER] snmpadapter_handle_request() : argc: %d\n", argc);
     int cnt = argc, i = 0;
     while (cnt--)
     {
@@ -355,23 +356,31 @@ static int snmpadapter_handle_request(char* request, char *transactionId, char *
         i++;
     }
 
+#endif
+
     if (strstr(argv[0], SNMPADAPTER_GET) != NULL)
     {
         // call snmp adapter get, return back response
         SnmpAdapterPrint("call snmp_adapter_send_receive_get...\n");
-        snmp_adapter_send_receive_get(argc, argv, response);
+        ret = snmp_adapter_send_receive_get(argc, argv, response);
     }
     else if (strstr(argv[0], SNMPADAPTER_SET) != NULL)
     {
         // call snmp adapter set. return back success/error response
         SnmpAdapterPrint("call snmp_adapter_send_receive_set...\n");
-        snmp_adapter_send_receive_set(argc, argv, response);
+        ret = snmp_adapter_send_receive_set(argc, argv, response);
     }
 
-    exit1: if (snmpcommand != NULL)
+    exit1:
+    if (snmpcommand != NULL)
+    {
         snmpadapter_delete_command(snmpcommand);
+    }
     if (snmpdata != NULL)
+    {
         wdmp_free_req_struct(snmpdata);
+    }
+
     return ret;
 }
 
@@ -421,6 +430,11 @@ static void send_receive_from_parodus()
 
                 SnmpAdapterPrint("[SNMPADAPTER] send_receive_from_parodus() : received WRP_MSG_TYPE__REQ \n");
                 res_wrp_msg = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
+                if(NULL == res_wrp_msg)
+                {
+                    SnmpAdapterPrint("[SNMPADAPTER] send_receive_from_parodus() : malloc FAILED !!! \n");
+                    return;
+                }
                 memset(res_wrp_msg, 0, sizeof(wrp_msg_t));
 
                 clock_gettime(CLOCK_REALTIME, startPtr);

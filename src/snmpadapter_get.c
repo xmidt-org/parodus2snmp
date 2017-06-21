@@ -38,6 +38,15 @@
 
 int snmp_adapter_send_receive_get(int numargs, char* pargs[], char **response)
 {
+
+#ifdef SNMPADAPTER_TEST_USINGSTUBS
+    //if using stubs to test, don't make net-snmp calls such as
+    // snmp_parse_args(), snmp_open(), snmp_pdu_create() or snmp_synch_response()
+    // Assume success and return.
+    *response = strdup(SNMPADAPTER_TEST_SUCCESS);
+    return 0; //
+#endif
+
     char responsebuffer[MAX_RESPONSE_BUFFER_SIZE] = { };
     netsnmp_session session, *ss;
     netsnmp_pdu *pdu;
@@ -61,10 +70,10 @@ int snmp_adapter_send_receive_get(int numargs, char* pargs[], char **response)
         case NETSNMP_PARSE_ARGS_ERROR:
         case NETSNMP_PARSE_ARGS_ERROR_USAGE:
             *response = strdup(SNMPADAPTER_PARSE_ARGS_ERROR);
-            exit(1);
+            return 1; // error
         case NETSNMP_PARSE_ARGS_SUCCESS_EXIT:
             *response = strdup(SNMPADAPTER_NO_ERROR_EXIT);
-            exit(0);
+            return 0; // successful exit
         default:
             break;
     }
@@ -73,7 +82,7 @@ int snmp_adapter_send_receive_get(int numargs, char* pargs[], char **response)
     {
         SnmpAdapterError("[SNMPADAPTER] snmp_adapter_send_receive_get() - Missing object name\n");
         *response = strdup(SNMPADAPTER_MISSING_OBJECT_ERROR);
-        exit(1);
+        return 1; //error
     }
 
     if ((numargs - arg) > SNMP_MAX_CMDLINE_OIDS)
@@ -81,7 +90,7 @@ int snmp_adapter_send_receive_get(int numargs, char* pargs[], char **response)
         SnmpAdapterError("[SNMPADAPTER] snmp_adapter_send_receive_get() - Too many object identifiers specified. ");
         SnmpAdapterError("[SNMPADAPTER] snmp_adapter_send_receive_get() - Only %d allowed in one request.\n", SNMP_MAX_CMDLINE_OIDS);
         *response = strdup(SNMPADAPTER_MAX_OIDS_ERROR);
-        exit(1);
+        return 1; //error
     }
 
     /*
@@ -104,7 +113,7 @@ int snmp_adapter_send_receive_get(int numargs, char* pargs[], char **response)
         snmp_sess_perror("snmpget", &session);
         SOCK_CLEANUP;
         *response = strdup(SNMPADAPTER_SNMP_SESSION_ERROR);
-        exit(1);
+        return 1; //error
     }
 
     /*
@@ -127,7 +136,7 @@ int snmp_adapter_send_receive_get(int numargs, char* pargs[], char **response)
         snmp_close(ss);
         SOCK_CLEANUP;
         *response = strdup(SNMPADAPTER_SNMP_SESSION_ERROR);
-        exit(1);
+        return 1; //error
     }
 
     /*
@@ -205,10 +214,10 @@ int snmp_adapter_send_receive_get(int numargs, char* pargs[], char **response)
         SnmpAdapterError("[SNMPADAPTER] snmp_adapter_send_receive_get() - Timeout: No Response from %s.\n", session.peername);
         *response = strdup(SNMPADAPTER_SNMP_TIMEOUT_ERROR);
         exitval = 1;
-
     }
     else
-    { /* status == STAT_ERROR */
+    {
+        /* status == STAT_ERROR */
         snmp_sess_perror("snmpget", ss);
         *response = strdup(SNMPADAPTER_SNMP_UNKNOWN_ERROR);
         exitval = 1;
