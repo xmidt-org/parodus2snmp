@@ -14,7 +14,7 @@
 /**
  * @brief Use stubs for testing instead of net-snmp methods (disabled on target)
  */
-#define SNMPADAPTER_TEST_USINGSTUBS
+ #define SNMPADAPTER_TEST_USINGSTUBS
 
 /**
  * @brief File to read config values for parodus

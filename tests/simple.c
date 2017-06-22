@@ -19,7 +19,6 @@
 #include <stdlib.h>
 #include <CUnit/Basic.h>
 
-
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
@@ -38,7 +37,7 @@
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
-/* none */
+extern int getargs(char* str, int* pargc, char** pargv);
 
 /*----------------------------------------------------------------------------*/
 /*                             Internal functions                             */
@@ -47,10 +46,37 @@ void test_all( void )
 {
 }
 
+void test_getargs()
+{
+    //Test - static int getargs(char* str, int* pargc, char** pargv)
+
+    printf("\n START test_getargs()...  ");
+
+    char setstr[] = "./snmpset -v2c -c hDaFHJG7 10.255.244.168 1.3.6.1.2.1.69.1.3.8.0 i 2";
+    int argc = 0;
+    char* argv[150] = { };
+    char *pStr = strdup(setstr);
+    getargs(pStr, &argc, argv);
+    CU_ASSERT_EQUAL(8, argc);
+    CU_ASSERT_STRING_EQUAL("./snmpset", argv[0]);
+    CU_ASSERT_STRING_EQUAL("-v2c", argv[1]);
+    CU_ASSERT_STRING_EQUAL("-c", argv[2]);
+    CU_ASSERT_STRING_EQUAL("hDaFHJG7", argv[3]);
+    CU_ASSERT_STRING_EQUAL("10.255.244.168", argv[4]);
+    CU_ASSERT_STRING_EQUAL("1.3.6.1.2.1.69.1.3.8.0", argv[5]);
+    CU_ASSERT_STRING_EQUAL("i", argv[6]);
+    CU_ASSERT_STRING_EQUAL("2", argv[7]);
+    free(pStr);
+
+    printf("\t END   test_getargs(). \n");
+
+}
+
 void add_suites( CU_pSuite *suite )
 {
     *suite = CU_add_suite( "parodus2snmp tests", NULL, NULL );
     CU_add_test( *suite, "Test all", test_all );
+    CU_add_test( *suite, "Test getargs method", test_getargs );
 }
 
 /*----------------------------------------------------------------------------*/

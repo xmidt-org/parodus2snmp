@@ -179,7 +179,10 @@ static void connect_to_parodus()
 /*
  * getargs
  */
-static int getargs(char* str, int* pargc, char** pargv)
+#ifndef SNMPADAPTER_TEST_STANDALONE
+static
+#endif
+int getargs(char* str, int* pargc, char** pargv)
 {
     if (!str || !pargc || !pargv)
     {
@@ -211,14 +214,18 @@ static int getargs(char* str, int* pargc, char** pargv)
     return 0; // success
 }
 
-/*
- * snmpadapter_create_command
- *   - create snmp command to send to net-snmp using snmp data
- *   - call snmpadapter_delete_command() to free allocated data
- *   return the size of allocated command.
- *   return 0 if fail
+/**
+ * @brief Creates the SNMP message using data form req_struct
+ * This method allocates memory for param 'command'
+ * The called should free memory by calling snmpadapter_delete_command(command)
+ *
+ *  This method returns the size of allocated command if success.
+ *  otherwise returns 0 for failure.
  */
-static int snmpadapter_create_command(req_struct* snmpdata, char** command)
+#ifndef SNMPADAPTER_TEST_STANDALONE
+static
+#endif
+int snmpadapter_create_command(req_struct* snmpdata, char** command)
 {
     if (!snmpdata || !command)
         return 0; //failed
@@ -234,7 +241,7 @@ static int snmpadapter_create_command(req_struct* snmpdata, char** command)
 
         int statsize = cmdsize = strlen(SNMPADAPTER_GET) + 1 + strlen(SNMPADAPTER_SUPPORTED_VERSION) + 1 + strlen(COMCAST_COMMUNITY_CMD) + 1 + strlen(COMCAST_COMMUNITY_TOKEN) + 1 + strlen(TARGET_AGENT) + 1;
 
-        for (int c = 0; c < snmpdata->u.getReq->paramCnt; c++)
+        for (unsigned int c = 0; c < snmpdata->u.getReq->paramCnt; c++)
         {
             cmdsize += strlen(snmpdata->u.getReq->paramNames[c]) + 1;
         }
@@ -247,7 +254,7 @@ static int snmpadapter_create_command(req_struct* snmpdata, char** command)
         SNMPADAPTER_GET, SNMPADAPTER_SUPPORTED_VERSION, COMCAST_COMMUNITY_CMD, COMCAST_COMMUNITY_TOKEN, TARGET_AGENT);
         pstr += statsize;
 
-        for (int c = 0; c < snmpdata->u.getReq->paramCnt; c++)
+        for (unsigned int c = 0; c < snmpdata->u.getReq->paramCnt; c++)
         {
             size_t n = strlen(snmpdata->u.getReq->paramNames[c]) + 1;
             snprintf(pstr, n + 1, "%s ", snmpdata->u.getReq->paramNames[c]);
@@ -264,7 +271,7 @@ static int snmpadapter_create_command(req_struct* snmpdata, char** command)
         int statsize = cmdsize = strlen(SNMPADAPTER_SET) + 1 + strlen(SNMPADAPTER_SUPPORTED_VERSION) + 1 + strlen(COMCAST_COMMUNITY_CMD) + 1 + strlen(COMCAST_COMMUNITY_TOKEN) + 1 + strlen(TARGET_AGENT) + 1;
 
         SnmpAdapterPrint("snmpdata->u.set->count = %d\n", (int )snmpdata->u.setReq->paramCnt);
-        for (int c = 0; c < snmpdata->u.setReq->paramCnt; c++)
+        for (unsigned int c = 0; c < snmpdata->u.setReq->paramCnt; c++)
         {
             cmdsize += strlen(snmpdata->u.setReq->param[c].name) + 1; //oid name
             cmdsize += sizeof(char) + 1; //oid type
@@ -279,7 +286,7 @@ static int snmpadapter_create_command(req_struct* snmpdata, char** command)
         SNMPADAPTER_SET, SNMPADAPTER_SUPPORTED_VERSION, COMCAST_COMMUNITY_CMD, COMCAST_COMMUNITY_TOKEN, TARGET_AGENT);
         pstr += statsize;
 
-        for (int c = 0; c < snmpdata->u.setReq->paramCnt; c++)
+        for (unsigned int c = 0; c < snmpdata->u.setReq->paramCnt; c++)
         {
             size_t n = strlen(snmpdata->u.setReq->param[c].name) + 1 + sizeof(char) + 1 + strlen(snmpdata->u.setReq->param[c].value) + 1;
 
@@ -509,32 +516,8 @@ static void send_receive_from_parodus()
 /* ------------------------------------------------------------------------------------------------
  * main()
  */
-int main()
+int snmpadapter_main()
 {
-    /*
-     *  TESTS
-     *
-     char setstr[] = "./snmpset -v2c -c hDaFHJG7 10.255.244.168 1.3.6.1.2.1.69.1.3.8.0 i 2";
-     char getstr[] = "./snmpget -v2c -c hDaFHJG7 10.255.244.168 1.3.6.1.2.1.69.1.3.8.0";
-     char *pStr = NULL;
-
-     //test snmp adapter set
-     pStr = setstr;
-     SnmpAdapterPrint("\n\nsnmp_adapter_set(): \n");
-     snmpadapter_handle_request(pStr, NULL, NULL);
-
-     //test snmp adapter get
-     pStr = getstr;
-     SnmpAdapterPrint("\n\nsnmp_adapter_get(): \n");
-     snmpadapter_handle_request(pStr, NULL, NULL);
-     *
-     *  END TESTS
-     */
-
-    /*
-     * Main
-     */
-
     connect_to_parodus();
     send_receive_from_parodus();
 

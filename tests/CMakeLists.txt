@@ -20,10 +20,10 @@ set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-arcs -ftest-cov
 
 #file(GLOB snmpadapter_SRC "../src/*.c" "../src/*.h")
 #add_executable(simple simple.c ${snmpadapter_SRC})
-add_executable(simple simple.c)
+add_executable(simple simple.c ../src/snmpadapter_main.c ../src/snmpadapter_parser.c ../src/snmpadapter_get.c ../src/snmpadapter_set.c)
 set_property(TARGET simple PROPERTY C_STANDARD 99)
-
-target_link_libraries (simple -llibparodus -lwrp-c -lmsgpackc -lnanomsg -luuid -lcimplog -ltrower-base64 )
+  
+target_link_libraries (simple -llibparodus -lwrp-c -lwdmp-c -lmsgpackc -lnanomsg -luuid -lnetsnmp -lcimplog -ltrower-base64 -lrt -lcrypto -lm -lcjson -lpthread)
 target_link_libraries (simple gcov)
 target_link_libraries (simple cunit)
 target_link_libraries (simple rt)
