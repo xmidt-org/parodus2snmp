@@ -7,14 +7,16 @@
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
 /**
- * @brief This is enabled for testing on stand alone system (disabled on target)
+ * @brief This is enabled for testing on stand alone system
+ * SNMPADAPTER_TEST_STANDALONE should be ketp disabled on target (XB3/XB6...)
  */
-#define SNMPADAPTER_TEST_STANDALONE
+// #define SNMPADAPTER_TEST_STANDALONE
 
 /**
- * @brief Use stubs for testing instead of net-snmp methods (disabled on target)
+ * @brief Use stubs for testing instead of net-snmp methods
+ * SNMPADAPTER_TEST_USINGSTUBS should be ketp disabled on target (XB3/XB6...)
  */
- #define SNMPADAPTER_TEST_USINGSTUBS
+// #define SNMPADAPTER_TEST_USINGSTUBS
 
 /**
  * @brief File to read config values for parodus
