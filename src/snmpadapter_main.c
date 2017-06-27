@@ -59,9 +59,12 @@ static char client_url[URL_SIZE] = { '\0' };
 libpd_instance_t g_current_instance;
 
 /*----------------------------------------------------------------------------*/
-/*                             Function Prototypes                            */
+/*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
-/* none */
+const char *rdk_logger_module_fetch(void)
+{
+    return "LOG.RDK.PARODUS2SNMP";
+}
 
 /*----------------------------------------------------------------------------*/
 /*                             Internal functions                             */
@@ -144,8 +147,8 @@ static void connect_to_parodus()
 
     get_parodus_url(parodus_url, client_url);
 
-   // libpd_cfg_t cfg1 = { .service_name = "snmp", .receive = true, .keepalive_timeout_secs = 64, .parodus_url = parodus_url, .client_url = client_url };
-    libpd_cfg_t cfg1 = { .service_name = "config", .receive = true, .keepalive_timeout_secs = 64, .parodus_url = parodus_url, .client_url = client_url };
+    libpd_cfg_t cfg1 = { .service_name = "snmp", .receive = true, .keepalive_timeout_secs = 64, .parodus_url = parodus_url, .client_url = client_url };
+   // libpd_cfg_t cfg1 = { .service_name = "config", .receive = true, .keepalive_timeout_secs = 64, .parodus_url = parodus_url, .client_url = client_url };
 
     SnmpAdapterPrint("libparodus_init with parodus url %s and client url %s\n", cfg1.parodus_url, cfg1.client_url);
 
