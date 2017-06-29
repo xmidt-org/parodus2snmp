@@ -19,6 +19,9 @@
 #include <stdlib.h>
 #include <CUnit/Basic.h>
 
+
+#include <wdmp-c.h>
+
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
@@ -38,6 +41,8 @@
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 extern int getargs(char* str, int* pargc, char** pargv);
+extern void get_parodus_url(char *parodus_url, char *client_url);
+extern int snmpadapter_create_command(req_struct* snmpdata, char** command);
 
 /*----------------------------------------------------------------------------*/
 /*                             Internal functions                             */
@@ -48,7 +53,7 @@ void test_all( void )
 
 void test_getargs()
 {
-    //Test - static int getargs(char* str, int* pargc, char** pargv)
+    //Test - int getargs(char* str, int* pargc, char** pargv)
 
     printf("\n START test_getargs()...  ");
 
@@ -68,15 +73,56 @@ void test_getargs()
     CU_ASSERT_STRING_EQUAL("2", argv[7]);
     free(pStr);
 
-    printf("\t END   test_getargs(). \n");
+    printf("\t END   test_getargs() \n");
 
 }
+
+void test_get_parodus_url()
+{
+    //Test - void get_parodus_url(char *parodus_url, char *client_url)
+    printf("\n START test_get_parodus_url()...  ");
+
+    char parodus_url[64] = { '\0' };
+    char client_url[64] = { '\0' };
+
+    get_parodus_url(parodus_url, client_url);
+
+    CU_ASSERT_FALSE(0 == parodus_url[0]);
+    CU_ASSERT_FALSE(0 == client_url[0]);
+
+    printf("\t END   test_get_parodus_url() \n");
+}
+
+void test_snmpadapter_create_command()
+{
+    //Test - int snmpadapter_create_command(req_struct* snmpdata, char** command)
+
+    printf("\n START test_snmpadapter_create_command()...  ");
+
+    req_struct Req = {0};
+    Req.reqType = GET;
+    Req.u.getReq = (get_req_t *)malloc(sizeof(get_req_t));
+    CU_ASSERT(NULL != Req.u.getReq);
+    Req.u.getReq->paramCnt = 2;
+    Req.u.getReq->paramNames[0] = "1.3.6.1.4.1.17270.50.2.3.16.1.2.1"; //SNMPv2-SMI::enterprises.17270.50.2.3.16.1.2.1 = Hex-STRING: 74 86 7A 69 7B A6
+    Req.u.getReq->paramNames[1] = "1.3.6.1.4.1.17270.50.2.3.16.1.5.1"; //SNMPv2-SMI::enterprises.17270.50.2.3.16.1.5.1 = STRING: "Murugan-PC"
+
+    char* snmpcommand = NULL;
+    int len = snmpadapter_create_command(&Req, &snmpcommand);
+    CU_ASSERT(len != 0);
+    CU_ASSERT_STRING_EQUAL("snmpget -v2c -c hDaFHJG7 10.255.244.168 1.3.6.1.4.1.17270.50.2.3.16.1.2.1 1.3.6.1.4.1.17270.50.2.3.16.1.5.1", snmpcommand);
+
+    printf("\t END   test_snmpadapter_create_command() \n");
+}
+
 
 void add_suites( CU_pSuite *suite )
 {
     *suite = CU_add_suite( "parodus2snmp tests", NULL, NULL );
     CU_add_test( *suite, "Test all", test_all );
     CU_add_test( *suite, "Test getargs method", test_getargs );
+    CU_add_test( *suite, "Test get_parodus_url method", test_get_parodus_url );
+    CU_add_test( *suite, "Test snmpadapter_create_command method", test_snmpadapter_create_command );
 }
 
 /*----------------------------------------------------------------------------*/

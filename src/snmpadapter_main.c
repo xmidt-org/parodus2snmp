@@ -73,17 +73,18 @@ const char *rdk_logger_module_fetch(void)
 /*
  * get_parodus_url
  */
-static void get_parodus_url(char *parodus_url, char *client_url)
+#ifndef SNMPADAPTER_TEST_STANDALONE
+static
+#endif
+void get_parodus_url(char *parodus_url, char *client_url)
 {
 
     FILE *fp = fopen(DEVICE_PROPS_FILE, "r");
-    char arm_ip[URL_SIZE] =
-    {   '\0'};
+    char arm_ip[URL_SIZE] = { '\0' };
 
     if (NULL != fp)
     {
-        char str[255] =
-        {   '\0'};
+        char str[255] = { '\0' };
         while (fscanf(fp, "%s", str) != EOF)
         {
             char *value = NULL;
@@ -104,7 +105,7 @@ static void get_parodus_url(char *parodus_url, char *client_url)
     }
     else
     {
-        SnmpAdapterPrint("Failed to open device.properties file!! : %s\n", DEVICE_PROPS_FILE);
+        SnmpAdapterPrint("[PARODUS2SNMP] Failed to open device.properties file!! : %s\n", DEVICE_PROPS_FILE);
         return;
     }
 
@@ -112,18 +113,20 @@ static void get_parodus_url(char *parodus_url, char *client_url)
 
     if (0 == parodus_url[0])
     {
-        SnmpAdapterPrint("parodus_url is not present in %s file! parodus_url: %s\n", DEVICE_PROPS_FILE, parodus_url);
+        SnmpAdapterPrint("[PARODUS2SNMP] Error : parodus_url is not present in %s file! \n", DEVICE_PROPS_FILE);
+        return;
     }
 
     if (0 == arm_ip[0])
     {
-        SnmpAdapterPrint("arm_ip is not present in %s file! arm_ip: %s\n", DEVICE_PROPS_FILE, arm_ip);
+        SnmpAdapterPrint("[PARODUS2SNMP] Error : arm_ip is not present in %s file! \n", DEVICE_PROPS_FILE);
+        return;
     }
 
     snprintf(client_url, URL_SIZE, "tcp://%s:%d", arm_ip, CLIENT_PORT_NUM);
 
-    SnmpAdapterPrint("client_url formed is %s\n", client_url);
-    SnmpAdapterPrint("parodus_url formed is %s\n", parodus_url);
+    SnmpAdapterPrint("[PARODUS2SNMP] Parodus URL formed is : %s\n", parodus_url);
+    SnmpAdapterPrint("[PARODUS2SNMP] Client URL formed is  : %s\n", client_url);
 
     return;
 }
@@ -143,14 +146,17 @@ static void connect_to_parodus()
     pthread_detach(pthread_self());
 
     max_retry_sleep = (int) pow(2, backoff_max_time) - 1;
-    SnmpAdapterPrint("max_retry_sleep is %d\n", max_retry_sleep);
+    SnmpAdapterPrint("[PARODUS2SNMP] max_retry_sleep is %d\n", max_retry_sleep);
 
-    get_parodus_url(parodus_url, client_url);
+    if ( (0 == parodus_url[0]) || ((0 == client_url[0])) )
+    {
+        get_parodus_url(parodus_url, client_url);
+    }
 
     libpd_cfg_t cfg1 = { .service_name = "snmp", .receive = true, .keepalive_timeout_secs = 64, .parodus_url = parodus_url, .client_url = client_url };
    // libpd_cfg_t cfg1 = { .service_name = "config", .receive = true, .keepalive_timeout_secs = 64, .parodus_url = parodus_url, .client_url = client_url };
 
-    SnmpAdapterPrint("libparodus_init with parodus url %s and client url %s\n", cfg1.parodus_url, cfg1.client_url);
+    SnmpAdapterPrint("[PARODUS2SNMP] Calling libparodus_init() with parodus url \"%s\" and client url \"%s\"\n", cfg1.parodus_url, cfg1.client_url);
 
     while (1)
     {
@@ -160,21 +166,20 @@ static void connect_to_parodus()
         }
 
         int ret = libparodus_init(&g_current_instance, &cfg1);
-        SnmpAdapterPrint("ret is %d\n", ret);
         if (ret == 0)
         {
-            SnmpAdapterPrint("Init for parodus Success..!\n");
+            SnmpAdapterPrint("[PARODUS2SNMP] Init for parodus Success..!\n");
             break;
         }
         else
         {
-            SnmpAdapterPrint("Initialization of libparodus failed: '%s' ! \n", libparodus_strerror(ret));
-            SnmpAdapterPrint("Going to retry again in %d seconds...\n", backoffRetryTime);
+            SnmpAdapterPrint("[PARODUS2SNMP] Initialization of libparodus failed: '%s' ! \n", libparodus_strerror(ret));
+            SnmpAdapterPrint("[PARODUS2SNMP] Going to retry again in %d seconds...\n", backoffRetryTime);
             sleep(backoffRetryTime);
             c++;
         }
         retval = libparodus_shutdown(&g_current_instance);
-        SnmpAdapterPrint("libparodus_shutdown retval %d\n", retval);
+        SnmpAdapterPrint("[PARODUS2SNMP] libparodus_shutdown retval %d\n", retval);
     }
 
 }
@@ -189,7 +194,7 @@ int getargs(char* str, int* pargc, char** pargv)
 {
     if (!str || !pargc || !pargv)
     {
-        SnmpAdapterPrint("[SNMPADAPTER] getargs() : error params!\n");
+        SnmpAdapterPrint("[PARODUS2SNMP] getargs() : error params!\n");
         return 1;
     }
 
@@ -198,7 +203,7 @@ int getargs(char* str, int* pargc, char** pargv)
     char *token = strtok(str, " \t\n\r");
     if (!token)
     {
-        SnmpAdapterPrint("[SNMPADAPTER] getargs() : Error parsing getargs param !\n");
+        SnmpAdapterPrint("[PARODUS2SNMP] getargs() : Error parsing getargs param !\n");
         return 1;
     }
 
@@ -211,7 +216,7 @@ int getargs(char* str, int* pargc, char** pargv)
 
     if (token)
     {
-        SnmpAdapterPrint("[SNMPADAPTER] getargs() : Exceeded Max allowed tokens : %d \n", SNMPADAPTER_MAX_ARGS);
+        SnmpAdapterPrint("[PARODUS2SNMP] getargs() : Exceeded Max allowed tokens : %d \n", SNMPADAPTER_MAX_ARGS);
     }
 
     return 0; // success
@@ -264,7 +269,7 @@ int snmpadapter_create_command(req_struct* snmpdata, char** command)
             pstr += n;
         }
 
-        *pstr = '\0';
+        *(--pstr) = '\0';
     }
     else if (snmpdata->reqType == SET)
     {
@@ -305,7 +310,7 @@ int snmpadapter_create_command(req_struct* snmpdata, char** command)
             pstr += n;
         }
 
-        *pstr = '\0';
+        *(--pstr) = '\0';
     }
 
     return (int) (pstr - *command);
@@ -327,7 +332,7 @@ static int snmpadapter_handle_request(char* request, char *transactionId, char *
 {
     int ret = 0;
     char* snmpcommand = NULL;
-    SnmpAdapterPrint("[SNMPADAPTER] snmpadapter_handle_request() : request: %s\n, transactionId = %s\n", request, transactionId);
+    SnmpAdapterPrint("[PARODUS2SNMP] snmpadapter_handle_request() : request: %s\n, transactionId = %s\n", request, transactionId);
 
     req_struct* snmpdata = NULL;
     wdmp_parse_request(request, &snmpdata);
@@ -344,25 +349,25 @@ static int snmpadapter_handle_request(char* request, char *transactionId, char *
         goto exit1;
     }
 
-    SnmpAdapterPrint("[SNMPADAPTER] snmpadapter_handle_request() : command [%s]\nlength=%d\n", snmpcommand, len);
+    SnmpAdapterPrint("[PARODUS2SNMP] snmpadapter_handle_request() : command [%s]\nlength=%d\n", snmpcommand, len);
 
     int argc = 0;
     char* argv[SNMPADAPTER_MAX_ARGS] = { };
     getargs(snmpcommand, &argc, argv);
     if (argc == 0 || argv[0] == NULL)
     {
-        SnmpAdapterPrint("[SNMPADAPTER] snmpadapter_handle_request() : could't parse arguments !\n");
+        SnmpAdapterPrint("[PARODUS2SNMP] snmpadapter_handle_request() : could't parse arguments !\n");
         ret = 1; //failed
         goto exit1;
     }
 
 #ifdef SNMPADAPTER_TEST_STANDALONE
 
-    SnmpAdapterPrint("[SNMPADAPTER] snmpadapter_handle_request() : argc: %d\n", argc);
+    SnmpAdapterPrint("[PARODUS2SNMP] snmpadapter_handle_request() : argc: %d\n", argc);
     int cnt = argc, i = 0;
     while (cnt--)
     {
-        SnmpAdapterPrint("[SNMPADAPTER] snmpadapter_handle_request() : argv[%d] : %s\n", i, argv[i]);
+        SnmpAdapterPrint("[PARODUS2SNMP] snmpadapter_handle_request() : argv[%d] : %s\n", i, argv[i]);
         i++;
     }
 
@@ -429,7 +434,7 @@ static void send_receive_from_parodus()
 
         if (rtn != 0)
         {
-            SnmpAdapterPrint("[SNMPADAPTER] send_receive_from_parodus() : Libparodus failed to recieve message: '%s'\n", libparodus_strerror(rtn));
+            SnmpAdapterPrint("[PARODUS2SNMP] send_receive_from_parodus() : Libparodus failed to recieve message: '%s'\n", libparodus_strerror(rtn));
             sleep(5);
             continue;
         }
@@ -438,11 +443,11 @@ static void send_receive_from_parodus()
         {
             case WRP_MSG_TYPE__REQ:
 
-                SnmpAdapterPrint("[SNMPADAPTER] send_receive_from_parodus() : received WRP_MSG_TYPE__REQ \n");
+                SnmpAdapterPrint("[PARODUS2SNMP] send_receive_from_parodus() : received WRP_MSG_TYPE__REQ \n");
                 res_wrp_msg = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
                 if(NULL == res_wrp_msg)
                 {
-                    SnmpAdapterPrint("[SNMPADAPTER] send_receive_from_parodus() : malloc FAILED !!! \n");
+                    SnmpAdapterPrint("[PARODUS2SNMP] send_receive_from_parodus() : malloc FAILED !!! \n");
                     return;
                 }
                 memset(res_wrp_msg, 0, sizeof(wrp_msg_t));
@@ -454,7 +459,7 @@ static void send_receive_from_parodus()
 
                 if (res_wrp_msg->u.req.payload == NULL)
                 {
-                    SnmpAdapterPrint("[SNMPADAPTER] send_receive_from_parodus() : Response payload is NULL !!\n");
+                    SnmpAdapterPrint("[PARODUS2SNMP] send_receive_from_parodus() : Response payload is NULL !!\n");
 
                     //MURUGAN: TODO : prepare and send appropriate error message in response
                     res_wrp_msg->u.req.payload_size = 0;
@@ -462,7 +467,7 @@ static void send_receive_from_parodus()
                 }
                 else
                 {
-                    SnmpAdapterPrint("[SNMPADAPTER] send_receive_from_parodus() : Response payload is %s\n", (char * ) (res_wrp_msg->u.req.payload));
+                    SnmpAdapterPrint("[PARODUS2SNMP] send_receive_from_parodus() : Response payload is %s\n", (char * ) (res_wrp_msg->u.req.payload));
                     res_wrp_msg->u.req.payload_size = strlen(res_wrp_msg->u.req.payload);
                 }
 
@@ -479,15 +484,15 @@ static void send_receive_from_parodus()
                 int sendStatus = libparodus_send(g_current_instance, res_wrp_msg);
                 if (sendStatus == 0)
                 {
-                    SnmpAdapterPrint("[SNMPADAPTER] send_receive_from_parodus() : Sent message successfully to parodus\n");
+                    SnmpAdapterPrint("[PARODUS2SNMP] send_receive_from_parodus() : Sent message successfully to parodus\n");
                 }
                 else
                 {
-                    SnmpAdapterPrint("[SNMPADAPTER] send_receive_from_parodus() : Failed to send message!! : '%s'\n", libparodus_strerror(sendStatus));
+                    SnmpAdapterPrint("[PARODUS2SNMP] send_receive_from_parodus() : Failed to send message!! : '%s'\n", libparodus_strerror(sendStatus));
                 }
 
                 clock_gettime(CLOCK_REALTIME, endPtr);
-                SnmpAdapterPrint("[SNMPADAPTER] send_receive_from_parodus() : Elapsed time : %ld ms\n", diff_time(startPtr, endPtr));
+                SnmpAdapterPrint("[PARODUS2SNMP] send_receive_from_parodus() : Elapsed time : %ld ms\n", diff_time(startPtr, endPtr));
 
                 //free response data structures
                 wrp_free_struct(res_wrp_msg);
