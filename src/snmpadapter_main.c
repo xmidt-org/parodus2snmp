@@ -95,10 +95,10 @@ void get_parodus_url(char *parodus_url, char *client_url)
                 strncpy(parodus_url, value, (strlen(str) - strlen("PARODUS_URL=")));
             }
 
-            if ((value = strstr(str, "ARM_INTERFACE_IP=")))
+            if ((value = strstr(str, "ARM_PROXY_SERVER=")))
             {
-                value = value + strlen("ARM_INTERFACE_IP=");
-                strncpy(arm_ip, value, (strlen(str) - strlen("ARM_INTERFACE_IP=")));
+                value = value + strlen("ARM_PROXY_SERVER=");
+                strncpy(arm_ip, value, (strlen(str) - strlen("ARM_PROXY_SERVER=")));
             }
 
         }
