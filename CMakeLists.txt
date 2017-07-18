@@ -20,7 +20,7 @@ include(CTest)
 
 #add_definitions(-std=c99)
 add_definitions(-std=gnu99)
-add_definitions(-DSNMPADAPTER_TEST_STANDALONE -DSNMPADAPTER_TEST_USINGSTUBS)
+
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -g -Werror -Wall")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c99 -g -Werror -Wall")
 
@@ -41,6 +41,10 @@ include_directories(${INCLUDE_DIR}
 include_directories (SYSTEM /usr/include)
 
 enable_testing()
+
+if(BUILD_TESTING)
+add_definitions(-DSNMPADAPTER_TEST_STANDALONE -DSNMPADAPTER_TEST_USINGSTUBS)
+endif()
 
 #find net-snmp opensource package 
 include(FindPackageNetSNMP.cmake)
