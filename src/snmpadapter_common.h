@@ -24,7 +24,7 @@
 #ifndef SNMPADAPTER_TEST_STANDALONE
 #define DEVICE_PROPS_FILE           "/etc/device.properties"
 #else
-#define DEVICE_PROPS_FILE           "../../device.properties"
+#define DEVICE_PROPS_FILE           "../../tests/test.config"
 #endif
 
 /**

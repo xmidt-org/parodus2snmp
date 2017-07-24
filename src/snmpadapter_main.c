@@ -105,7 +105,7 @@ void get_parodus_url(char *parodus_url, char *client_url)
     }
     else
     {
-        SnmpAdapterPrint("[PARODUS2SNMP] Failed to open device.properties file!! : %s\n", DEVICE_PROPS_FILE);
+        SnmpAdapterPrint("[PARODUS2SNMP] Failed to open \"%s\" file!!\n", DEVICE_PROPS_FILE);
         return;
     }
 
