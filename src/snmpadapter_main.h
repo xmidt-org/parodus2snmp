@@ -32,7 +32,6 @@
 /* #define CONTENT_TYPE_JSON        "application/json" */
 #define CONTENT_TYPE_ASCII          "text/plain; charset=us-ascii"
 
-#define CLIENT_PORT_NUM             6667
 #define URL_SIZE                    64
 
 /*
