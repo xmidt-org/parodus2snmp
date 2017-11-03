@@ -94,10 +94,10 @@ void get_parodus_url(char *parodus_url, char *client_url)
                 strncpy(parodus_url, value, (strlen(str) - strlen("PARODUS_URL=")));
             }
 
-            if ((value = strstr(str, "SNMP_CLIENT_URL=")))
+            if ((value = strstr(str, "PARODUS2SNMP_CLIENT_URL=")))
             {
-                value = value + strlen("SNMP_CLIENT_URL=");
-                strncpy(client_url, value, (strlen(str) - strlen("SNMP_CLIENT_URL=")));
+                value = value + strlen("PARODUS2SNMP_CLIENT_URL=");
+                strncpy(client_url, value, (strlen(str) - strlen("PARODUS2SNMP_CLIENT_URL=")));
             }
 
         }
