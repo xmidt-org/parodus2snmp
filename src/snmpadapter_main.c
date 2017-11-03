@@ -80,7 +80,6 @@ void get_parodus_url(char *parodus_url, char *client_url)
 {
 
     FILE *fp = fopen(DEVICE_PROPS_FILE, "r");
-    char arm_ip[URL_SIZE] = { '\0' };
 
     if (NULL != fp)
     {
@@ -95,13 +94,14 @@ void get_parodus_url(char *parodus_url, char *client_url)
                 strncpy(parodus_url, value, (strlen(str) - strlen("PARODUS_URL=")));
             }
 
-            if ((value = strstr(str, "ARM_PROXY_SERVER=")))
+            if ((value = strstr(str, "PARODUS2SNMP_CLIENT_URL=")))
             {
-                value = value + strlen("ARM_PROXY_SERVER=");
-                strncpy(arm_ip, value, (strlen(str) - strlen("ARM_PROXY_SERVER=")));
+                value = value + strlen("PARODUS2SNMP_CLIENT_URL=");
+                strncpy(client_url, value, (strlen(str) - strlen("PARODUS2SNMP_CLIENT_URL=")));
             }
 
         }
+	fclose(fp);
     }
     else
     {
@@ -109,21 +109,17 @@ void get_parodus_url(char *parodus_url, char *client_url)
         return;
     }
 
-    fclose(fp);
-
     if (0 == parodus_url[0])
     {
         SnmpAdapterPrint("[PARODUS2SNMP] Error : parodus_url is not present in %s file! \n", DEVICE_PROPS_FILE);
         return;
     }
 
-    if (0 == arm_ip[0])
+    if (0 == client_url[0])
     {
-        SnmpAdapterPrint("[PARODUS2SNMP] Error : arm_ip is not present in %s file! \n", DEVICE_PROPS_FILE);
+        SnmpAdapterPrint("[PARODUS2SNMP] Error : client_url is not present in %s file! \n", DEVICE_PROPS_FILE);
         return;
     }
-
-    snprintf(client_url, URL_SIZE, "tcp://%s:%d", arm_ip, CLIENT_PORT_NUM);
 
     SnmpAdapterPrint("[PARODUS2SNMP] Parodus URL formed is : %s\n", parodus_url);
     SnmpAdapterPrint("[PARODUS2SNMP] Client URL formed is  : %s\n", client_url);
