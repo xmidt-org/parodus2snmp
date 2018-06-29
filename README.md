@@ -1,6 +1,6 @@
 # parodus2snmp
 
-Webpa-to-SNMP bridge
+Webpa Parodus-to-SNMP bridge
 
 [![Build Status](https://travis-ci.org/Comcast/parodus2snmp.svg?branch=master)](https://travis-ci.org/Comcast/parodus2snmp)
 [![codecov.io](http://codecov.io/github/Comcast/parodus2snmp/coverage.svg?branch=master)](http://codecov.io/github/Comcast/parodus2snmp?branch=master)
