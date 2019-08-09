@@ -57,7 +57,7 @@ void test_getargs()
 
     printf("\n START test_getargs()...  ");
 
-    char setstr[] = "./snmpset -v2c -c hDaFHJG7 10.255.244.168 1.3.6.1.2.1.69.1.3.8.0 i 2";
+    char setstr[] = "./snmpset -v2c -c secret 10.255.244.168 1.3.6.1.2.1.69.1.3.8.0 i 2";
     int argc = 0;
     char* argv[150] = { };
     char *pStr = strdup(setstr);
@@ -66,7 +66,7 @@ void test_getargs()
     CU_ASSERT_STRING_EQUAL("./snmpset", argv[0]);
     CU_ASSERT_STRING_EQUAL("-v2c", argv[1]);
     CU_ASSERT_STRING_EQUAL("-c", argv[2]);
-    CU_ASSERT_STRING_EQUAL("hDaFHJG7", argv[3]);
+    CU_ASSERT_STRING_EQUAL("secret", argv[3]);
     CU_ASSERT_STRING_EQUAL("10.255.244.168", argv[4]);
     CU_ASSERT_STRING_EQUAL("1.3.6.1.2.1.69.1.3.8.0", argv[5]);
     CU_ASSERT_STRING_EQUAL("i", argv[6]);
@@ -110,7 +110,7 @@ void test_snmpadapter_create_command()
     char* snmpcommand = NULL;
     int len = snmpadapter_create_command(&Req, &snmpcommand);
     CU_ASSERT(len != 0);
-    CU_ASSERT_STRING_EQUAL("snmpget -v2c -c hDaFHJG7 10.255.244.168 1.3.6.1.4.1.17270.50.2.3.16.1.2.1 1.3.6.1.4.1.17270.50.2.3.16.1.5.1", snmpcommand);
+    CU_ASSERT_STRING_EQUAL("snmpget -v2c -c secret 10.255.244.168 1.3.6.1.4.1.17270.50.2.3.16.1.2.1 1.3.6.1.4.1.17270.50.2.3.16.1.5.1", snmpcommand);
 
     printf("\t END   test_snmpadapter_create_command() \n");
 }

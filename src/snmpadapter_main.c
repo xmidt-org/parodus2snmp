@@ -40,7 +40,9 @@
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
 
-#define COMCAST_COMMUNITY_TOKEN "hDaFHJG7"
+#ifndef COMCAST_COMMUNITY_TOKEN
+#define COMCAST_COMMUNITY_TOKEN     "secret"
+#endif
 #define COMCAST_COMMUNITY_CMD "-c"
 #define SNMPADAPTER_SUPPORTED_VERSION "-v2c"
 
